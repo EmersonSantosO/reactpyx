@@ -2,9 +2,12 @@
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use regex::Regex;
+use swc_common::sync::Lrc;
+use swc_ecma_parser::{lexer::Lexer, Parser, StringInput, Syntax};
+use swc_ecma_transforms_base::fixer::fixer;
+use swc_ecma_visit::VisitMutWith;
 
-/// Minifica el código JavaScript compatible con ES2023.
+/// Minifica el código JavaScript compatible con ES2023 usando SWC.
 ///
 /// Args:
 ///     js_code (str): El código JavaScript a minificar.
@@ -14,96 +17,42 @@ use regex::Regex;
 #[pyfunction]
 #[pyo3(text_signature = "(js_code)")]
 pub fn minify_js_code(js_code: &str) -> PyResult<String> {
-    // Eliminar comentarios
-    let no_comments = remove_js_comments(js_code).map_err(|e| {
-        PyValueError::new_err(format!("Error al eliminar comentarios de JS: {}", e))
-    })?;
+    let cm = Lrc::new(swc_common::SourceMap::default());
+    let fm = cm.new_source_file(
+        swc_common::FileName::Custom("input.js".into()),
+        js_code.into(),
+    );
 
-    // Eliminar espacios en blanco innecesarios
-    let no_whitespace = minify_code(&no_comments, true).map_err(|e| {
-        PyValueError::new_err(format!(
-            "Error al minificar espacios en blanco de JS: {}",
-            e
-        ))
-    })?;
+    let lexer = Lexer::new(
+        Syntax::default(),
+        swc_common::EsVersion::Es2023,
+        StringInput::from(&*fm),
+        None,
+    );
+    let mut parser = Parser::new_from(lexer);
+    let module = parser
+        .parse_module()
+        .map_err(|e| PyValueError::new_err(format!("Error al parsear JS: {}", e)))?;
 
-    // Optimizar el código JavaScript
-    let optimized_code = optimize_js(&no_whitespace)
-        .map_err(|e| PyValueError::new_err(format!("Error al optimizar el código JS: {}", e)))?;
+    let mut minified_module = optimize(module, Default::default());
+    minified_module.visit_mut_with(&mut fixer(None));
 
-    Ok(optimized_code)
-}
+    let mut buf = vec![];
+    let mut emitter = swc_ecma_codegen::Emitter {
+        cfg: swc_ecma_codegen::Config { minify: true },
+        cm: cm.clone(),
+        wr: Box::new(swc_ecma_codegen::text_writer::JsWriter::new(
+            cm, "\n", &mut buf, None,
+        )),
+        comments: None,
+    };
 
-/// Elimina los comentarios de un código JavaScript.
-fn remove_js_comments(js_code: &str) -> Result<String, regex::Error> {
-    let comment_re = Regex::new(r"//[^\n\r]*|/\*[^*]*\*+(?:[^/*][^*]*\*+)*/")?;
-    Ok(comment_re.replace_all(js_code, "").to_string())
-}
+    emitter
+        .emit_module(&minified_module)
+        .map_err(|e| PyValueError::new_err(format!("Error al generar JS: {}", e)))?;
 
-/// Minifica un código genérico eliminando espacios en blanco innecesarios.
-///
-/// Esta función preserva un espacio entre tokens alfanuméricos y símbolos,
-/// pero elimina los espacios al principio y al final de la cadena.
-fn minify_code(code: &str, preserve_single_spaces: bool) -> Result<String, regex::Error> {
-    // Esta función actualmente no puede fallar, pero se deja como Result para futuras mejoras
-    let mut minified = String::new();
-    let mut inside_string = false;
-    let mut inside_regex = false;
-    let mut prev_char = '\0';
-
-    for c in code.chars() {
-        match c {
-            '"' | '\'' | '`' => {
-                inside_string = !inside_string;
-                minified.push(c);
-            }
-            '/' if !inside_string && prev_char == '=' => {
-                inside_regex = true;
-                minified.push(c);
-            }
-            '/' if inside_regex => {
-                inside_regex = false;
-                minified.push(c);
-            }
-            ' ' | '\n' | '\t' if !inside_string && !inside_regex => {
-                if preserve_single_spaces && prev_char.is_alphanumeric() {
-                    minified.push(' ');
-                }
-            }
-            _ => minified.push(c),
-        }
-        prev_char = c;
-    }
-
-    Ok(minified.trim().to_string())
-}
-
-/// Optimiza el código JavaScript eliminando declaraciones redundantes y simplificando expresiones.
-///
-/// Esta función elimina las llamadas a `console.log`, los bloques vacíos y los puntos y coma redundantes.
-fn optimize_js(code: &str) -> Result<String, regex::Error> {
-    let no_console = remove_console_logs(code)?;
-    let no_empty_blocks = remove_empty_blocks(&no_console)?;
-    let optimized_code = remove_redundant_semicolons(&no_empty_blocks)?;
-    Ok(optimized_code)
-}
-
-/// Elimina las llamadas a `console.log` del código JavaScript.
-fn remove_console_logs(code: &str) -> Result<String, regex::Error> {
-    let console_re = Regex::new(r"console\.log\([^\)]*\);?")?;
-    Ok(console_re.replace_all(code, "").to_string())
-}
-
-/// Elimina los bloques vacíos del código JavaScript.
-fn remove_empty_blocks(code: &str) -> Result<String, regex::Error> {
-    let empty_block_re = Regex::new(r"\{\s*\}")?;
-    Ok(empty_block_re.replace_all(code, "{}").to_string())
-}
-
-/// Elimina los puntos y coma redundantes del código JavaScript.
-fn remove_redundant_semicolons(code: &str) -> Result<String, regex::Error> {
-    let semicolon_re = Regex::new(r";+\s*;")?;
-    Ok(semicolon_re.replace_all(code, ";").to_string())
+    Ok(String::from_utf8(buf)
+        .map_err(|e| PyValueError::new_err(format!("Error de codificación: {}", e)))?)
 }
 
 /// Módulo de Python para la minificación.
@@ -111,4 +60,19 @@ fn remove_redundant_semicolons(code: &str) -> Result<String, regex::Error> {
 fn my_minifier(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(minify_js_code, m)?)?;
     Ok(())
+}
+
+fn optimize(
+    module: swc_ecma_ast::Module,
+    options: swc_ecma_transforms_base::optimizer::OptimizerOptions,
+) -> swc_ecma_ast::Module {
+    let unresolved_mark = swc_common::Mark::new();
+    let top_level_mark = swc_common::Mark::new();
+
+    swc_ecma_transforms_base::optimizer::optimize(
+        &unresolved_mark,
+        &top_level_mark,
+        module,
+        options,
+    )
 }

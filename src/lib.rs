@@ -84,6 +84,18 @@ fn core_reactpyx(py: Python, m: &PyModule) -> PyResult<()> {
 
 /// Función Python para compilar todos los archivos `.pyx` usando PyBolt.
 /// Se expone a Python como `compile_all_pyx`.
+///
+/// # Arguments
+///
+/// * `project_root` - Ruta al directorio raíz del proyecto.
+/// * `config_path` - Ruta al archivo de configuración.
+///
+/// # Returns
+///
+/// Una tupla que contiene:
+///
+/// * Una lista de los archivos `.pyx` compilados correctamente.
+/// * Una lista de tuplas con los errores de compilación. Cada tupla contiene la ruta del archivo y el mensaje de error.
 #[pyfunction]
 fn compile_all_pyx_py(
     project_root: &str,
@@ -101,6 +113,15 @@ fn compile_all_pyx_py(
 
 /// Función Python para compilar un archivo `.pyx` a Python.
 /// Se expone a Python como `compile_pyx_to_python`.
+///
+/// # Arguments
+///
+/// * `entry_file` - Ruta al archivo `.pyx` de entrada.
+/// * `config_path` - Ruta al archivo de configuración.
+///
+/// # Returns
+///
+/// El código Python compilado a partir del archivo `.pyx`.
 #[pyfunction]
 fn compile_pyx_to_python_py(entry_file: &str, config_path: &str) -> PyResult<String> {
     let result = futures::executor::block_on(compile_pyx_to_python(entry_file, config_path));
@@ -115,6 +136,13 @@ fn compile_pyx_to_python_py(entry_file: &str, config_path: &str) -> PyResult<Str
 
 /// Función Python para actualizar la aplicación de FastAPI con el código optimizado.
 /// Se expone a Python como `update_application`.
+///
+/// # Arguments
+///
+/// * `module_name` - Nombre del módulo Python que contiene la aplicación FastAPI.
+/// * `code` - Código Python de la aplicación FastAPI.
+/// * `entry_function` - Nombre de la función de entrada de la aplicación FastAPI.
+/// * `project_root` - Ruta al directorio raíz del proyecto.
 #[pyfunction]
 fn update_application_py(
     module_name: &str,
@@ -140,6 +168,12 @@ fn update_application_py(
 
 /// Función Python para compilar PyX a JavaScript usando PyBolt.
 /// Se expone a Python como `compile_pyx_to_js`.
+///
+/// # Arguments
+///
+/// * `entry_file` - Ruta al archivo `.pyx` de entrada.
+/// * `config_path` - Ruta al archivo de configuración.
+/// * `output_dir` - Ruta al directorio de salida para el código JavaScript compilado.
 #[pyfunction]
 fn compile_pyx_to_js_py(entry_file: &str, config_path: &str, output_dir: &str) -> PyResult<()> {
     let result =

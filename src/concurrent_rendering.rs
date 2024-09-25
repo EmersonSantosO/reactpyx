@@ -1,9 +1,7 @@
-// core_reactpyx/src/concurrent_rendering.rs
-
 use pyo3::prelude::*;
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tokio::task;
 
 #[pyclass]
 pub struct ConcurrentRenderer {
@@ -19,24 +17,33 @@ impl ConcurrentRenderer {
         }
     }
 
-    pub fn render_concurrently(&self, delay_secs: u64) {
+    // Devolvemos un Py<JoinHandle>
+    pub fn render_concurrently(
+        &self,
+        delay_secs: u64,
+        py: Python<'_>,
+    ) -> PyResult<Py<task::JoinHandle<()>>> {
         let is_complete_clone = Arc::clone(&self.is_complete);
 
-        thread::spawn(move || {
-            thread::sleep(Duration::from_secs(delay_secs)); // Simulamos un proceso costoso
-            let mut is_complete = is_complete_clone.lock().expect("Error al adquirir el lock");
+        let join_handle = task::spawn(async move {
+            if let Err(e) = tokio::time::sleep(tokio::time::Duration::from_secs(delay_secs)).await {
+                error!("Error en la tarea de renderizado concurrente: {}", e);
+            }
+            let mut is_complete = is_complete_clone.lock().await;
             *is_complete = true;
         });
+
+        Ok(Py::new(py, join_handle)?)
     }
 
-    pub fn is_render_complete(&self) -> bool {
-        let is_complete = self.is_complete.lock().expect("Error al adquirir el lock");
-        *is_complete
+    pub async fn is_render_complete(&self) -> PyResult<bool> {
+        let is_complete = self.is_complete.lock().await;
+        Ok(*is_complete)
     }
 
-    // Funcionalidad para cancelar renderizados futuros
-    pub fn reset_render(&self) {
-        let mut is_complete = self.is_complete.lock().expect("Error al adquirir el lock");
+    pub async fn reset_render(&self) -> PyResult<()> {
+        let mut is_complete = self.is_complete.lock().await;
         *is_complete = false;
+        Ok(())
     }
 }

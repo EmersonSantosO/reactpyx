@@ -1,8 +1,8 @@
 // core_reactpyx/src/async_task.rs
 
 use pyo3::prelude::*;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio::task;
 
 #[pyclass]
@@ -22,20 +22,34 @@ impl AsyncTaskManager {
     pub fn run_async_task(&self, delay_secs: u64) -> PyResult<()> {
         let is_complete_clone = Arc::clone(&self.is_complete);
         task::spawn(async move {
-            tokio::time::sleep(Duration::from_secs(delay_secs)).await;
-            let mut is_complete = is_complete_clone.lock().unwrap();
+            tokio::time::sleep(tokio::time::Duration::from_secs(delay_secs)).await;
+            let mut is_complete = is_complete_clone.lock().await;
             *is_complete = true;
         });
         Ok(())
     }
 
-    pub fn is_task_complete(&self) -> PyResult<bool> {
-        let is_complete = self.is_complete.lock().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                "Error al adquirir el lock: {}",
-                e
-            ))
-        })?;
+    pub async fn is_task_complete(&self) -> PyResult<bool> {
+        let is_complete = self.is_complete.lock().await;
         Ok(*is_complete)
+    }
+}
+// core_reactpyx/src/async_task.rs
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::test;
+
+    #[test]
+    async fn test_async_task_manager() {
+        let task_manager = AsyncTaskManager::new();
+        let delay = 2;
+        task_manager.run_async_task(delay).unwrap();
+
+        // Esperar un poco más que el retraso para que la tarea se complete
+        tokio::time::sleep(tokio::time::Duration::from_secs(delay + 1)).await;
+
+        assert!(task_manager.is_task_complete().await.unwrap());
     }
 }

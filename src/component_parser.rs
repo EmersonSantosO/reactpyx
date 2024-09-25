@@ -4,8 +4,7 @@ use log::{error, info};
 use std::error::Error;
 use std::fs;
 use std::path::Path;
-
-use tree_sitter::{Node, Parser};
+use tree_sitter::{Node, Parser, TreeCursor};
 use tree_sitter_python::language as python_language;
 
 /// Estructura para manejar la detección de componentes.
@@ -33,7 +32,7 @@ impl ComponentParser {
         let tree = self
             .parser
             .parse(&source, None)
-            .ok_or("Fallo al parsear el archivo.")?;
+            .ok_or_else(|| format!("Fallo al parsear el archivo: {}", file_path))?;
         let root_node = tree.root_node();
 
         let mut components = Vec::new();
@@ -50,8 +49,21 @@ impl ComponentParser {
                         .map(|c| c.is_uppercase())
                         .unwrap_or(false)
                     {
-                        components.push(name);
+                        // Opcional: Verificar si la función retorna JSX
+                        if Self::function_returns_jsx(&child, &source) {
+                            components.push(name);
+                        } else {
+                            info!(
+                                "Función '{}' no retorna JSX. No se considera un componente.",
+                                name
+                            );
+                        }
                     }
+                } else {
+                    error!(
+                        "No se pudo obtener el nombre de la función en el archivo: {}",
+                        file_path
+                    );
                 }
             }
         }
@@ -70,6 +82,27 @@ impl ComponentParser {
         None
     }
 
+    /// Verifica si una función retorna JSX.
+    fn function_returns_jsx(node: &Node, source: &str) -> bool {
+        // Implementa la lógica para verificar si la función retorna JSX.
+        // Esto puede involucrar analizar el cuerpo de la función en busca de retornos de JSX.
+        // Como Tree-sitter para Python no tiene conocimiento específico de JSX,
+        // podrías buscar patrones específicos en el código retornado.
+
+        // Ejemplo simplificado: verificar si hay 'return <'
+        let return_node = node
+            .children(&mut node.walk())
+            .find(|child| child.kind() == "return_statement");
+        if let Some(return_stmt) = return_node {
+            let return_expr = return_stmt.child_by_field_name("argument");
+            if let Some(expr) = return_expr {
+                let text = expr.utf8_text(source.as_bytes()).unwrap_or("");
+                return text.trim_start().starts_with("<");
+            }
+        }
+        false
+    }
+
     /// Detecta componentes en todo el directorio `src/components`.
     pub fn detect_components_in_directory(
         &mut self,
@@ -83,7 +116,11 @@ impl ComponentParser {
                 "Directorio de componentes no encontrado: {:?}",
                 components_path
             );
-            return Err("Directorio de componentes no encontrado.".into());
+            return Err(format!(
+                "Directorio de componentes no encontrado: {:?}",
+                components_path
+            )
+            .into());
         }
 
         // Recorremos todos los archivos en el directorio `src/components`
@@ -102,5 +139,73 @@ impl ComponentParser {
 
         info!("Componentes detectados: {:?}", components);
         Ok(components)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_detect_components_in_file() {
+        let mut parser = ComponentParser::new().unwrap();
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test_component.pyx");
+        let mut file = File::create(&file_path).unwrap();
+
+        let code = r#"
+def not_a_component():
+    pass
+
+def MyComponent():
+    return <div>Hello, World!</div>
+
+def AnotherComponent():
+    return some_function()
+"#;
+
+        file.write_all(code.as_bytes()).unwrap();
+
+        let components = parser
+            .detect_components_in_file(file_path.to_str().unwrap())
+            .unwrap();
+
+        assert_eq!(components, vec!["MyComponent"]);
+    }
+
+    #[test]
+    fn test_detect_components_in_directory() {
+        let mut parser = ComponentParser::new().unwrap();
+        let dir = tempdir().unwrap();
+        let components_dir = dir.path().join("components");
+        fs::create_dir(&components_dir).unwrap();
+
+        let file1_path = components_dir.join("component1.pyx");
+        let mut file1 = File::create(&file1_path).unwrap();
+        let code1 = r#"
+def FirstComponent():
+    return <span>First</span>
+"#;
+        file1.write_all(code1.as_bytes()).unwrap();
+
+        let file2_path = components_dir.join("component2.pyx");
+        let mut file2 = File::create(&file2_path).unwrap();
+        let code2 = r#"
+def second_component():
+    return <div>Second</div>
+
+def SecondComponent():
+    return <div>Second</div>
+"#;
+        file2.write_all(code2.as_bytes()).unwrap();
+
+        let components = parser
+            .detect_components_in_directory(components_dir.to_str().unwrap())
+            .unwrap();
+
+        assert_eq!(components, vec!["FirstComponent", "SecondComponent"]);
     }
 }
