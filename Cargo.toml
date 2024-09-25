@@ -1,0 +1,23 @@
+# core_reactpyx/Cargo.toml
+
+[package]
+name = "core_reactpyx"
+version = "0.2.1"
+edition = "2021"
+
+[lib]
+name = "core_reactpyx"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.20.0", features = ["extension-module"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+regex = "1.7"
+log = "0.4"
+env_logger = "0.10"
+tree-sitter = "0.20"
+tree-sitter-python = "0.20"
+rayon = "1.7"
+futures = "0.3"
+tokio = { version = "1.28.2", features = ["full"] }

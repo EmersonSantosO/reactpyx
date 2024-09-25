@@ -1,0 +1,10 @@
+## core_reactpyx/pyproject.toml
+[build-system]
+requires = ["maturin>=0.12"]
+build-backend = "maturin"
+
+[project]
+name = "core_reactpyx"
+version = "0.2.1"
+description = "Python bindings for core_react"
+dependencies = []
