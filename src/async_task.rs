@@ -1,20 +1,19 @@
-// core_reactpyx/src/async_task.rs
-
 use pyo3::prelude::*;
+use pyo3_asyncio::tokio::future_into_py;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task;
 
 #[pyclass]
 pub struct AsyncTaskManager {
-    pub is_complete: Arc<Mutex<bool>>,
+    is_complete: Arc<Mutex<bool>>,
 }
 
 #[pymethods]
 impl AsyncTaskManager {
     #[new]
     pub fn new() -> Self {
-        AsyncTaskManager {
+        Self {
             is_complete: Arc::new(Mutex::new(false)),
         }
     }
@@ -29,27 +28,29 @@ impl AsyncTaskManager {
         Ok(())
     }
 
-    pub async fn is_task_complete(&self) -> PyResult<bool> {
-        let is_complete = self.is_complete.lock().await;
-        Ok(*is_complete)
+    pub fn is_task_complete<'a>(&self, py: Python<'a>) -> PyResult<&'a PyAny> {
+        let is_complete_clone = Arc::clone(&self.is_complete);
+        future_into_py(py, async move {
+            let is_complete = is_complete_clone.lock().await;
+            Ok(*is_complete)
+        })
     }
 }
-// core_reactpyx/src/async_task.rs
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use tokio::test;
 
-    #[test]
+    #[tokio::test]
     async fn test_async_task_manager() {
         let task_manager = AsyncTaskManager::new();
         let delay = 2;
         task_manager.run_async_task(delay).unwrap();
 
-        // Esperar un poco más que el retraso para que la tarea se complete
         tokio::time::sleep(tokio::time::Duration::from_secs(delay + 1)).await;
 
-        assert!(task_manager.is_task_complete().await.unwrap());
+        let is_complete = task_manager.is_complete.lock().await;
+        assert!(*is_complete);
     }
 }

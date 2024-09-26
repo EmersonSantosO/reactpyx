@@ -1,8 +1,6 @@
-# core_reactpyx/Cargo.toml
-
 [package]
 name = "core_reactpyx"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 
 [lib]
@@ -10,26 +8,26 @@ name = "core_reactpyx"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.22.3", features = ["extension-module"] }
+pyo3 = { version = "^0.20", features = ["extension-module"] }
+pyo3-asyncio = { version = "^0.20", features = ["tokio-runtime"] }
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
-regex = "1.7"
-log = "0.4"
-env_logger = "0.10"
-tree-sitter = "0.20"
-tree-sitter-python = "0.20"
-rayon = "1.7"
-futures = "0.3"
-tokio = { version = "1.28.2", features = ["full"] }
-dashmap = "5.0"
-swc_common = "0.4"
-swc_ecma_parser = "0.152"
-swc_ecma_transforms_base = "0.149"
-swc_ecma_visit = "0.107"
+regex = "1.10.6"
+log = "0.4.22"
+env_logger = "0.10.2"
+tree-sitter = "0.20.10"
+tree-sitter-python = "0.20.4"
+rayon = "1.10.0"
+futures = "0.3.30"
+tokio = { version = "1.40.0", features = ["full"] }
+dashmap = "5.5.3"
+swc_common = "0.33.26"
+swc_ecma_parser = "0.130.10"
+swc_ecma_transforms_base = "0.122.16"
+swc_ecma_visit = "0.98.7"
 quote = "1.0.37"
-anyhow = "1.0"
+anyhow = "1.0.89"
 convert_case = "0.6.0"
 syn = { version = "2.0.77", features = ["full"] }
-
-
-# ... otras dependencias ...
+proc-macro2 = "1.0.86"
+pybolt = { path = "../pybolt", version = "0.3.0" }
