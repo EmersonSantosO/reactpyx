@@ -1,9 +1,19 @@
+# core_reactpyx/pyproject.toml
+
 [build-system]
-requires = ["maturin>=0.*"]
+requires = ["maturin>=0.14,<0.15"]
 build-backend = "maturin"
 
 [project]
 name = "core_reactpyx"
-version = "0.3.0"
-description = "Python bindings for core_reactpyx"
-dependencies = []
+version = "0.4.0"
+description = "Núcleo del framework ReactPyx, proporciona funcionalidades esenciales."
+authors = [{ name = "Tu Nombre", email = "tu.email@example.com" }]
+license = "MIT"
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Rust",
+    "Operating System :: OS Independent",
+]
+python = ">=3.8"

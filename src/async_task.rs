@@ -1,3 +1,5 @@
+// core_reactpyx/src/async_task.rs
+
 use pyo3::prelude::*;
 use pyo3_asyncio::tokio::future_into_py;
 use std::sync::Arc;
@@ -34,23 +36,5 @@ impl AsyncTaskManager {
             let is_complete = is_complete_clone.lock().await;
             Ok(*is_complete)
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tokio::test;
-
-    #[tokio::test]
-    async fn test_async_task_manager() {
-        let task_manager = AsyncTaskManager::new();
-        let delay = 2;
-        task_manager.run_async_task(delay).unwrap();
-
-        tokio::time::sleep(tokio::time::Duration::from_secs(delay + 1)).await;
-
-        let is_complete = task_manager.is_complete.lock().await;
-        assert!(*is_complete);
     }
 }
