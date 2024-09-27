@@ -51,10 +51,10 @@ impl ComponentDetector {
         Ok(components)
     }
 
-    fn detect_components_in_directory_boxed(
-        &mut self,
-        components_dir: &Path,
-    ) -> Pin<Box<dyn Future<Output = Result<Vec<String>>> + '_>> {
+    fn detect_components_in_directory_boxed<'a>(
+        &'a mut self,
+        components_dir: &'a Path,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<String>>> + 'a>> {
         Box::pin(self.detect_components_in_directory(components_dir))
     }
 
