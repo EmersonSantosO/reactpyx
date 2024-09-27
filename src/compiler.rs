@@ -1,30 +1,31 @@
-// core_reactpyx/src/compiler.rs
-
-use crate::component_parser::ComponentParser;
 use anyhow::{Context, Result};
 use log::{error, info};
 use md5;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::Arc;
 use syn::{self, File};
 use tokio::fs;
+use tokio::sync::RwLock;
+use tokio_stream::wrappers::ReadDirStream;
+use tokio_stream::StreamExt;
 
-static TRANSFORM_CACHE: Lazy<Mutex<HashMap<String, String>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+use crate::precompiler::JSXPrecompiler; // Importar el precompilador de JSX
 
+// Usar RwLock para manejar concurrencia en el caché de transformación
+static TRANSFORM_CACHE: Lazy<Arc<RwLock<HashMap<String, String>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
+
+/// Compila todos los archivos `.pyx` en el proyecto
 pub async fn compile_all_pyx(
     project_root: &str,
     config_path: &str,
 ) -> Result<(Vec<String>, Vec<(String, String)>)> {
     let components_dir = Path::new(project_root).join("src").join("components");
-    let mut parser = ComponentParser::new();
 
-    // Aquí deberías implementar la lógica para detectar los componentes en el directorio
-    let components = parser
-        .detect_components_in_file(components_dir.to_str().unwrap()) // Suponiendo que esta función lea un archivo específico
-        .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    // Detectar componentes en el directorio de forma asíncrona
+    let components = detect_components_in_directory(&components_dir).await?;
 
     info!(
         "Iniciando la compilación con los componentes: {:?}",
@@ -40,7 +41,7 @@ pub async fn compile_all_pyx(
         if file_path.exists() {
             match compile_pyx_file_to_python(&file_path, config_path).await {
                 Ok(python_code) => {
-                    compiled_files.push(file_path.to_str().unwrap().to_string());
+                    compiled_files.push(file_path.to_string_lossy().to_string());
                     info!("Compilado exitosamente: {:?}", file_path);
 
                     let output_path = Path::new(project_root)
@@ -51,13 +52,13 @@ pub async fn compile_all_pyx(
                     fs::write(&output_path, python_code).await?;
                 }
                 Err(e) => {
-                    errors.push((file_path.to_str().unwrap().to_string(), e.to_string()));
+                    errors.push((file_path.to_string_lossy().to_string(), e.to_string()));
                     error!("Error compilando {:?}: {}", file_path, e);
                 }
             }
         } else {
             errors.push((
-                file_path.to_str().unwrap().to_string(),
+                file_path.to_string_lossy().to_string(),
                 "Archivo no encontrado.".to_string(),
             ));
             error!("Error compilando {:?}: Archivo no encontrado.", file_path);
@@ -67,36 +68,113 @@ pub async fn compile_all_pyx(
     Ok((compiled_files, errors))
 }
 
+/// Detección de componentes en un directorio de forma recursiva
+async fn detect_components_in_directory(components_dir: &Path) -> Result<Vec<String>> {
+    let mut components = Vec::new();
+
+    let mut dir_entries = ReadDirStream::new(
+        fs::read_dir(components_dir)
+            .await
+            .with_context(|| format!("Error al leer el directorio {:?}", components_dir))?,
+    );
+
+    while let Some(entry) = dir_entries.next().await {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.is_file() {
+            match path.extension().and_then(|s| s.to_str()) {
+                Some("pyx") => {
+                    let detected_components = detect_components_in_file(&path).await?;
+                    components.extend(detected_components);
+                }
+                Some("jsx") => {
+                    info!("Precompilando archivo JSX: {:?}", path);
+                    let precompiler = JSXPrecompiler::new();
+                    match precompiler.precompile_jsx(path.to_str().unwrap()) {
+                        Ok(_) => info!("Precompilación JSX exitosa: {:?}", path),
+                        Err(e) => error!("Error precompilando JSX: {} - {:?}", e, path),
+                    }
+                }
+                _ => {}
+            }
+        } else if path.is_dir() {
+            let sub_components = detect_components_in_directory(&path).await?;
+            components.extend(sub_components);
+        }
+    }
+
+    Ok(components)
+}
+
+/// Detección de componentes dentro de un archivo `.pyx`
+async fn detect_components_in_file(file_path: &Path) -> Result<Vec<String>> {
+    let source = fs::read_to_string(file_path)
+        .await
+        .with_context(|| format!("Error al leer el archivo {:?}", file_path))?;
+    let tree = syn::parse_file(&source)
+        .map_err(|_| anyhow::anyhow!("Fallo al parsear el archivo: {:?}", file_path))?;
+
+    let mut components = Vec::new();
+
+    // Análisis sintáctico para extraer componentes
+    for item in &tree.items {
+        if let syn::Item::Fn(func) = item {
+            let name = func.sig.ident.to_string();
+            if name
+                .chars()
+                .next()
+                .map(|c| c.is_uppercase())
+                .unwrap_or(false)
+            {
+                components.push(name.clone());
+                info!("Componente detectado: {}", name);
+            }
+        }
+    }
+
+    Ok(components)
+}
+
+/// Compilar un archivo `.pyx` a código Python
 pub async fn compile_pyx_file_to_python(file_path: &Path, _config_path: &str) -> Result<String> {
     let source_code = fs::read_to_string(file_path)
         .await
         .with_context(|| format!("Error al leer el archivo {:?}", file_path))?;
 
-    let python_code = transform_pyx_to_python(&source_code)?;
+    let python_code = transform_pyx_to_python(&source_code).await?;
 
     Ok(python_code)
 }
 
-fn transform_pyx_to_python(pyx_code: &str) -> Result<String> {
+/// Transformación de código PyX a Python
+async fn transform_pyx_to_python(pyx_code: &str) -> Result<String> {
     let cache_key = format!("{:x}", md5::compute(pyx_code));
-    let mut cache = TRANSFORM_CACHE.lock().unwrap();
+    let cache = TRANSFORM_CACHE.clone();
 
-    if let Some(cached) = cache.get(&cache_key) {
-        return Ok(cached.clone());
+    // Leer caché de forma segura usando `RwLock`
+    let cached = {
+        let read_guard = cache.read().await;
+        read_guard.get(&cache_key).cloned()
+    };
+
+    if let Some(cached_code) = cached {
+        return Ok(cached_code);
     }
 
-    // Parsea el código PyX y transforma el AST
+    // Parsear y transformar el AST del código PyX
     let syntax_tree: File =
         syn::parse_file(pyx_code).with_context(|| "Error al parsear el código PyX")?;
-
-    // Aquí, aplicarías las transformaciones necesarias al AST
     let python_code = prettyplease::unparse(&syntax_tree);
 
-    cache.insert(cache_key, python_code.clone());
+    // Escribir el resultado al caché
+    let mut write_guard = cache.write().await;
+    write_guard.insert(cache_key.clone(), python_code.clone());
 
     Ok(python_code)
 }
 
+/// Compilar un archivo `.pyx` a JavaScript
 pub async fn compile_pyx_to_js(
     entry_file: &str,
     _config_path: &str,
@@ -125,8 +203,8 @@ pub async fn compile_pyx_to_js(
     Ok(())
 }
 
+/// Transformación de código JSX a JavaScript
 fn transform_jsx_to_js(jsx_code: &str) -> Result<String> {
-    // Transformación básica del código JSX a JS
     let transformed_code = jsx_code
         .replace("<", "React.createElement('")
         .replace("/>", "')")
@@ -136,11 +214,7 @@ fn transform_jsx_to_js(jsx_code: &str) -> Result<String> {
     Ok(transformed_code)
 }
 
-pub fn watch_for_changes(_project_root: &str, _config_path: &str) -> Result<()> {
-    // Implementación para ver cambios en el proyecto
-    Ok(())
-}
-
+/// Actualizar una aplicación existente con el nuevo código
 pub async fn update_application(
     module_name: &str,
     code: &str,

@@ -1,7 +1,6 @@
-use parking_lot::RwLock;
 use pyo3::prelude::*;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone)]
@@ -17,37 +16,27 @@ pub struct VNode {
     props: HashMap<String, PyObject>,
     children: Vec<Py<VNode>>,
     is_critical: bool,
-    cache: Arc<RwLock<HashMap<String, CacheEntry>>>,
+    cache: Arc<Mutex<HashMap<String, CacheEntry>>>, // Cambiado a `Mutex`
     cache_duration: Duration,
 }
 
 #[pymethods]
 impl VNode {
-    #[new]
-    #[pyo3(signature = (tag, props, children, is_critical, cache_duration_secs = 60))]
-    pub fn new(
-        tag: String,
-        props: HashMap<String, PyObject>,
-        children: Vec<Py<VNode>>,
-        is_critical: bool,
-        cache_duration_secs: u64,
-    ) -> Self {
-        VNode {
-            tag,
-            props,
-            children,
-            is_critical,
-            cache: Arc::new(RwLock::new(HashMap::new())),
-            cache_duration: Duration::from_secs(cache_duration_secs),
-        }
+    pub fn clean_cache(&self) {
+        let mut cache = self.cache.lock().unwrap();
+        cache.retain(|_, entry| entry.timestamp.elapsed() < self.cache_duration);
+    }
+
+    pub fn set_cache_duration(&mut self, duration_secs: u64) {
+        self.cache_duration = Duration::from_secs(duration_secs);
     }
 
     pub fn render_vnode(&self, py: Python) -> PyResult<String> {
         let cache_key = format!("{:?}{:?}", self.tag, self.props);
+        self.clean_cache();
 
-        // Verifica si el nodo es estático y usa el cache solo si es necesario
         if !self.is_critical {
-            let cache = self.cache.read();
+            let cache = self.cache.lock().unwrap();
             if let Some(entry) = cache.get(&cache_key) {
                 if entry.timestamp.elapsed() < self.cache_duration {
                     return Ok(entry.value.clone());
@@ -65,16 +54,15 @@ impl VNode {
             .children
             .iter()
             .map(|child| {
-                let child_vnode = child.as_ref(py).borrow();
+                let child_vnode = child.bind(py).borrow();
                 child_vnode.render_vnode(py)
             })
             .collect::<PyResult<String>>()?;
 
         let rendered = format!("<{}{}>{}</{}>", self.tag, props_str, children_str, self.tag);
 
-        // Cache solo si no es crítico
         if !self.is_critical {
-            let mut cache = self.cache.write();
+            let mut cache = self.cache.lock().unwrap();
             cache.insert(
                 cache_key,
                 CacheEntry {

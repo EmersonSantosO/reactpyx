@@ -1,11 +1,14 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use log::error;
+use once_cell::sync::Lazy;
 use pyo3::prelude::*;
+use pyo3_asyncio_0_21::tokio::future_into_py;
+use std::process::Command;
 use tokio::runtime::Runtime;
 
-const CONFIG_PATH: &str = "pyx.config.json";
-const ENTRY_FILE: &str = "./src/main.pyx";
+static TOKIO_RUNTIME: Lazy<Runtime> =
+    Lazy::new(|| Runtime::new().expect("Error al crear el runtime de Tokio"));
 
 #[derive(Parser)]
 #[command(name = "reactpyx")]
@@ -32,9 +35,13 @@ enum Commands {
         #[arg(short, long, default_value = "dist")]
         output: String,
     },
+    /// Instalar una librería de estilos (por ejemplo: tailwind, bootstrap)
+    Install {
+        /// Nombre de la librería (por ejemplo: tailwind)
+        library: String,
+    },
 }
 
-/// Función principal que ejecuta la CLI.
 pub fn run_cli() -> Result<()> {
     let cli = Cli::parse();
 
@@ -52,16 +59,20 @@ pub fn run_cli() -> Result<()> {
             }
         }
         Commands::Run => {
-            let rt = Runtime::new().expect("Error creando el runtime de Tokio");
-            if let Err(e) = rt.block_on(run_server()) {
+            if let Err(e) = TOKIO_RUNTIME.block_on(run_server()) {
                 error!("Error al ejecutar el servidor: {}", e);
                 std::process::exit(1);
             }
         }
         Commands::Build { output } => {
-            let rt = Runtime::new().expect("Error creando el runtime de Tokio");
-            if let Err(e) = rt.block_on(build_project(&output)) {
+            if let Err(e) = TOKIO_RUNTIME.block_on(build_project(&output)) {
                 error!("Error al construir el proyecto: {}", e);
+                std::process::exit(1);
+            }
+        }
+        Commands::Install { library } => {
+            if let Err(e) = install_library(&library) {
+                error!("Error al instalar la librería: {}", e);
                 std::process::exit(1);
             }
         }
@@ -71,29 +82,61 @@ pub fn run_cli() -> Result<()> {
 }
 
 fn create_project(project_name: &str) -> Result<()> {
-    // Lógica para crear un proyecto
     println!("Creando proyecto: {}", project_name);
+    // Lógica para crear un proyecto
     Ok(())
 }
 
 fn init_project() -> Result<()> {
-    // Lógica para inicializar el proyecto
     println!("Inicializando el proyecto");
+    // Lógica para inicializar el proyecto
     Ok(())
 }
 
 async fn run_server() -> Result<()> {
-    // Lógica para ejecutar el servidor
     println!("Ejecutando el servidor de desarrollo");
+    // Lógica para ejecutar el servidor
     Ok(())
 }
 
 async fn build_project(output: &str) -> Result<()> {
-    // Lógica para construir el proyecto
     println!(
         "Construyendo el proyecto para producción en el directorio: {}",
         output
     );
+    // Lógica para construir el proyecto
+    Ok(())
+}
+
+/// Nueva función para instalar librerías de estilos como Tailwind
+fn install_library(library: &str) -> Result<()> {
+    match library {
+        "tailwind" => {
+            println!("Instalando Tailwind CSS...");
+            Command::new("npm")
+                .args(&["install", "-D", "tailwindcss"])
+                .spawn()?
+                .wait()?;
+
+            Command::new("npx")
+                .args(&["tailwindcss", "init"])
+                .spawn()?
+                .wait()?;
+            println!("Tailwind CSS instalado correctamente.");
+        }
+        "bootstrap" => {
+            println!("Instalando Bootstrap...");
+            Command::new("npm")
+                .args(&["install", "bootstrap"])
+                .spawn()?
+                .wait()?;
+            println!("Bootstrap instalado correctamente.");
+        }
+        _ => {
+            error!("Librería no reconocida: {}", library);
+            return Err(anyhow::anyhow!("Librería no reconocida: {}", library));
+        }
+    }
     Ok(())
 }
 
@@ -113,17 +156,21 @@ pub fn create_project_py(project_name: &str) -> PyResult<()> {
 pub fn init_project_py() -> PyResult<()> {
     init_project().map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
 }
-
 #[pyfunction]
-pub fn run_server_py() -> PyResult<()> {
-    let rt = Runtime::new().expect("Error creando el runtime de Tokio");
-    rt.block_on(run_server())
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
+pub fn run_server_py(py: Python) -> PyResult<Bound<PyAny>> {
+    future_into_py(py, async {
+        run_server()
+            .await
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
+    })
 }
 
 #[pyfunction]
-pub fn build_project_py(output: &str) -> PyResult<()> {
-    let rt = Runtime::new().expect("Error creando el runtime de Tokio");
-    rt.block_on(build_project(output))
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
+pub fn build_project_py<'a>(output: &'a str, py: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
+    let output = output.to_string(); // Clona la cadena para hacerla `'static`
+    future_into_py(py, async move {
+        build_project(&output)
+            .await
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
+    })
 }

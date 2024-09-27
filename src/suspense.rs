@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 
 #[pyclass]
 pub struct SuspenseComponent {
-    is_loading: Arc<Mutex<bool>>,
-    error: Arc<Mutex<Option<String>>>,
+    is_loading: Arc<Mutex<bool>>,      // Cambiado a `Mutex`
+    error: Arc<Mutex<Option<String>>>, // Cambiado a `Mutex`
 }
 
 #[pymethods]
@@ -49,8 +49,8 @@ impl SuspenseComponent {
 
 #[pyclass]
 pub struct ErrorBoundary {
-    has_error: Arc<Mutex<bool>>,
-    error_message: Arc<Mutex<Option<String>>>,
+    has_error: Arc<Mutex<bool>>,               // Cambiado a `Mutex`
+    error_message: Arc<Mutex<Option<String>>>, // Cambiado a `Mutex`
 }
 
 #[pymethods]
