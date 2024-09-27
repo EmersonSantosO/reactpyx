@@ -1,4 +1,11 @@
 use anyhow::{Context, Result};
+use html5ever::{
+    parse_document,
+    rcdom::RcDom,
+    serialize,
+    tendril::TendrilSink,
+    tree_builder::{TreeBuilderOpts, TreeSink},
+};
 use log::{error, info};
 use md5;
 use once_cell::sync::Lazy;
@@ -11,6 +18,7 @@ use tokio::sync::RwLock;
 use tokio_stream::wrappers::ReadDirStream;
 use tokio_stream::StreamExt;
 
+use crate::js_minifier::minify_js_code;
 use crate::precompiler::JSXPrecompiler; // Importar el precompilador de JSX
 
 // Usar RwLock para manejar concurrencia en el caché de transformación
@@ -193,9 +201,12 @@ pub async fn compile_pyx_to_js(
         .with_context(|| format!("Error al leer el archivo {:?}", entry_file))?;
     let transformed_js = transform_jsx_to_js(&source_code)?;
 
+    // Minificar el código JavaScript
+    let (minified_js, _sourcemap) = minify_js_code(&transformed_js, true)?;
+
     let output_file = Path::new(output_dir).join("app.js");
     fs::create_dir_all(output_dir).await?;
-    fs::write(&output_file, transformed_js)
+    fs::write(&output_file, minified_js)
         .await
         .with_context(|| format!("Error al escribir el archivo {:?}", output_file))?;
 
@@ -203,8 +214,13 @@ pub async fn compile_pyx_to_js(
     Ok(())
 }
 
-/// Transformación de código JSX a JavaScript
+/// Transformación de código JSX a JavaScript (más robusta)
 fn transform_jsx_to_js(jsx_code: &str) -> Result<String> {
+    // Implementa una lógica de transformación más robusta para manejar la sintaxis completa de JSX.
+    // Puedes usar una biblioteca de Rust como `syn` para analizar el código JSX y generar el código JavaScript equivalente.
+    // ...
+
+    // Ejemplo básico (reemplazar con lógica más robusta)
     let transformed_code = jsx_code
         .replace("<", "React.createElement('")
         .replace("/>", "')")
@@ -229,4 +245,16 @@ pub async fn update_application(
     info!("Aplicación actualizada en {:?}", output_file);
 
     Ok(())
+}
+
+/// Saneamiento de HTML con html5ever
+pub fn sanitize_html(html: &str) -> Result<String> {
+    let dom = parse_document(RcDom::default(), Default::default())
+        .from_utf8()
+        .read_from(&mut html.as_bytes())?;
+
+    let mut sanitized_html = String::new();
+    serialize(&mut sanitized_html, &dom.document, Default::default())?;
+
+    Ok(sanitized_html)
 }

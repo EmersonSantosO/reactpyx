@@ -1,10 +1,14 @@
+use crate::compiler::sanitize_html;
 use pyo3::prelude::*;
-use regex::Regex;
 
 #[pyfunction]
 pub fn minify_html_code(html_code: &str) -> PyResult<String> {
-    let no_comments = remove_html_comments(html_code);
-    let minified = minify_code(&no_comments);
+    // Sanear el HTML usando html5ever
+    let sanitized_html = sanitize_html(html_code)?;
+
+    // Minificar el HTML (puedes usar la lógica de minificación original o una biblioteca dedicada)
+    let minified = minify_code(&sanitized_html);
+
     Ok(minified)
 }
 

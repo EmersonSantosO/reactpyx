@@ -1,23 +1,20 @@
 use crate::compiler::{
     compile_all_pyx, compile_pyx_file_to_python, compile_pyx_to_js, update_application,
 };
-use crate::hooks::{Dispatch, SetState}; // Importar los hooks necesarios
-use log::info; // Importar el macro `info` de la crate `log`
-use once_cell::sync::Lazy; // Importar `Lazy` del crate `once_cell`
+use crate::hooks::{Dispatch, SetState};
+use log::info;
+use once_cell::sync::Lazy;
 use pyo3::{prelude::*, wrap_pyfunction};
 use pyo3_asyncio_0_21::tokio::{future_into_py_with_locals, get_current_locals};
-use tokio::runtime::Runtime; // Importar el runtime Tokio
+use tokio::runtime::Runtime;
 
-// Crear el runtime de Tokio una sola vez
 static TOKIO_RUNTIME: Lazy<Runtime> =
     Lazy::new(|| Runtime::new().expect("Error al crear el runtime de Tokio"));
 
-/// Módulo principal para `core_reactpyx`
 #[pymodule]
 fn core_reactpyx(py: Python, m: &PyModule) -> PyResult<()> {
     env_logger::init();
 
-    // Exponer clases y funciones
     add_hooks_to_module(m)?;
     add_minifiers_to_module(m)?;
     add_jsx_transformers_to_module(m)?;
@@ -28,7 +25,6 @@ fn core_reactpyx(py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-/// Función para agregar hooks al módulo de PyO3
 fn add_hooks_to_module(m: &PyModule) -> PyResult<()> {
     use crate::hooks::{use_context, use_effect_with_deps, use_lazy_state, use_reducer, use_state};
 
@@ -42,7 +38,6 @@ fn add_hooks_to_module(m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-/// Función para agregar minificadores al módulo de PyO3
 fn add_minifiers_to_module(m: &PyModule) -> PyResult<()> {
     use crate::css_minifier::minify_css_code;
     use crate::html_minifier::minify_html_code;
@@ -54,7 +49,6 @@ fn add_minifiers_to_module(m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-/// Función para agregar transformadores de JSX al módulo de PyO3
 fn add_jsx_transformers_to_module(m: &PyModule) -> PyResult<()> {
     use crate::jsx_transformer::{incremental_jsx_transform, parse_jsx};
 
@@ -63,7 +57,6 @@ fn add_jsx_transformers_to_module(m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-/// Función para agregar funcionalidades del compilador al módulo de PyO3
 fn add_compiler_to_module(m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile_all_pyx_py, m)?)?;
     m.add_function(wrap_pyfunction!(compile_pyx_file_to_python_py, m)?)?;
@@ -72,7 +65,6 @@ fn add_compiler_to_module(m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-/// Validar rutas para asegurar que no estén vacías
 fn validate_path(path: &str) -> PyResult<()> {
     if path.trim().is_empty() {
         Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
@@ -89,18 +81,14 @@ fn compile_all_pyx_py<'a>(
     config_path: &'a str,
     py: Python<'a>,
 ) -> PyResult<Bound<'a, PyAny>> {
-    // Validar rutas
     validate_path(project_root)?;
     validate_path(config_path)?;
 
-    // Clonar las cadenas para hacerlas 'static
     let project_root = project_root.to_string();
     let config_path = config_path.to_string();
 
-    // Obtener los TaskLocals actuales
     let locals = get_current_locals(py)?;
 
-    // Convertir el bloque async en un awaitable de Python
     future_into_py_with_locals(py, locals, async move {
         compile_all_pyx(&project_root, &config_path)
             .await
@@ -114,14 +102,12 @@ fn compile_pyx_file_to_python_py(
     config_path: &str,
     py: Python<'_>,
 ) -> PyResult<Bound<'_, PyAny>> {
-    // Validar rutas
     validate_path(file_path)?;
     validate_path(config_path)?;
 
     let path = std::path::PathBuf::from(file_path);
     let locals = get_current_locals(py)?;
 
-    // Convertir el bloque async en un awaitable de Python
     future_into_py_with_locals(py, locals, async move {
         compile_pyx_file_to_python(&path, config_path)
             .await
@@ -137,7 +123,6 @@ fn update_application_py(
     project_root: &str,
     py: Python<'_>,
 ) -> PyResult<Bound<'_, PyAny>> {
-    // Validar rutas
     validate_path(module_name)?;
     validate_path(entry_function)?;
     validate_path(project_root)?;
@@ -145,7 +130,6 @@ fn update_application_py(
     let project_root_path = std::path::PathBuf::from(project_root);
     let locals = get_current_locals(py)?;
 
-    // Convertir el bloque async en un awaitable de Python
     future_into_py_with_locals(py, locals, async move {
         update_application(module_name, code, entry_function, project_root_path)
             .await
@@ -160,14 +144,12 @@ fn compile_pyx_to_js_py(
     output_dir: &str,
     py: Python<'_>,
 ) -> PyResult<Bound<'_, PyAny>> {
-    // Validar rutas
     validate_path(entry_file)?;
     validate_path(config_path)?;
     validate_path(output_dir)?;
 
     let locals = get_current_locals(py)?;
 
-    // Convertir el bloque async en un awaitable de Python
     future_into_py_with_locals(py, locals, async move {
         compile_pyx_to_js(entry_file, config_path, output_dir)
             .await

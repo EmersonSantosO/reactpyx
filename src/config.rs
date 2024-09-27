@@ -1,5 +1,3 @@
-// core_reactpyx/src/config.rs
-
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::fs;

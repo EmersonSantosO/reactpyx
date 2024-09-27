@@ -13,5 +13,7 @@ pub fn minify_js_code(js_code: &str, sourcemaps: bool) -> PyResult<(String, Opti
 }
 
 fn generate_sourcemap(_code: &str) -> String {
+    // Implementa la generación de sourcemaps aquí.
+    // Puedes usar una biblioteca externa o tu propia lógica.
     String::from("sourcemap_placeholder")
 }

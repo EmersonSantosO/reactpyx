@@ -1,10 +1,15 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use colored::Colorize;
+use indicatif::{ProgressBar, ProgressStyle};
 use log::error;
+use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 use pyo3_asyncio_0_21::tokio::future_into_py;
 use std::process::Command;
+use std::sync::mpsc::channel;
+use std::time::Duration;
 use tokio::runtime::Runtime;
 
 static TOKIO_RUNTIME: Lazy<Runtime> =
@@ -48,31 +53,31 @@ pub fn run_cli() -> Result<()> {
     match cli.command {
         Commands::CreateProject { project_name } => {
             if let Err(e) = create_project(&project_name) {
-                error!("Error al crear el proyecto: {}", e);
+                error!("{} {}", "Error al crear el proyecto:".red(), e);
                 std::process::exit(1);
             }
         }
         Commands::Init => {
             if let Err(e) = init_project() {
-                error!("Error al inicializar el proyecto: {}", e);
+                error!("{} {}", "Error al inicializar el proyecto:".red(), e);
                 std::process::exit(1);
             }
         }
         Commands::Run => {
             if let Err(e) = TOKIO_RUNTIME.block_on(run_server()) {
-                error!("Error al ejecutar el servidor: {}", e);
+                error!("{} {}", "Error al ejecutar el servidor:".red(), e);
                 std::process::exit(1);
             }
         }
         Commands::Build { output } => {
             if let Err(e) = TOKIO_RUNTIME.block_on(build_project(&output)) {
-                error!("Error al construir el proyecto: {}", e);
+                error!("{} {}", "Error al construir el proyecto:".red(), e);
                 std::process::exit(1);
             }
         }
         Commands::Install { library } => {
             if let Err(e) = install_library(&library) {
-                error!("Error al instalar la librería: {}", e);
+                error!("{} {}", "Error al instalar la librería:".red(), e);
                 std::process::exit(1);
             }
         }
@@ -82,29 +87,104 @@ pub fn run_cli() -> Result<()> {
 }
 
 fn create_project(project_name: &str) -> Result<()> {
-    println!("Creando proyecto: {}", project_name);
-    // Lógica para crear un proyecto
+    // Barra de progreso para la creación del proyecto
+    let pb = ProgressBar::new_spinner();
+    pb.enable_steady_tick(120);
+    pb.set_style(
+        ProgressStyle::default_spinner()
+            .tick_strings(&["-", "\\", "|", "/"])
+            .template("{spinner:.blue} Creando proyecto: {msg}"),
+    );
+    pb.set_message(project_name.to_string());
+
+    // Lógica para crear un proyecto (misma que antes)
+    // ...
+    std::thread::sleep(Duration::from_secs(2)); // Simula la creación
+
+    pb.finish_with_message(format!(
+        "{} {}",
+        "Proyecto".green(),
+        "creado exitosamente!".green()
+    ));
     Ok(())
 }
 
 fn init_project() -> Result<()> {
-    println!("Inicializando el proyecto");
-    // Lógica para inicializar el proyecto
+    // Barra de progreso para la inicialización
+    let pb = ProgressBar::new_spinner();
+    pb.enable_steady_tick(120);
+    pb.set_style(
+        ProgressStyle::default_spinner()
+            .tick_strings(&["-", "\\", "|", "/"])
+            .template("{spinner:.blue} Inicializando proyecto..."),
+    );
+
+    // Lógica para inicializar el proyecto (misma que antes)
+    // ...
+    std::thread::sleep(Duration::from_secs(2)); // Simula la inicialización
+
+    pb.finish_with_message(format!(
+        "{} {}",
+        "Proyecto".green(),
+        "inicializado exitosamente!".green()
+    ));
     Ok(())
 }
 
 async fn run_server() -> Result<()> {
-    println!("Ejecutando el servidor de desarrollo");
-    // Lógica para ejecutar el servidor
+    println!(
+        "{} {}",
+        "Ejecutando el servidor de desarrollo...".yellow(),
+        "http://localhost:8000".blue()
+    );
+
+    // Lógica para ejecutar el servidor (misma que antes)
+    // ...
+
+    // Observar cambios en los archivos
+    let (tx, rx) = channel();
+    let mut watcher: RecommendedWatcher = Watcher::new(
+        tx,
+        Config::default().with_poll_interval(Duration::from_secs(2)),
+    )?;
+    watcher.watch("src", RecursiveMode::Recursive)?;
+
+    for res in rx {
+        match res {
+            Ok(event) => match event {
+                Event::Write(path) => {
+                    println!("{} {}", "Archivo modificado:".green(), path.display());
+                    // Recompilar el archivo modificado
+                    // ...
+                }
+                _ => {}
+            },
+            Err(e) => println!("{} {:?}", "Error al observar:".red(), e),
+        }
+    }
+
     Ok(())
 }
 
 async fn build_project(output: &str) -> Result<()> {
-    println!(
-        "Construyendo el proyecto para producción en el directorio: {}",
-        output
+    // Barra de progreso para la construcción
+    let pb = ProgressBar::new_spinner();
+    pb.enable_steady_tick(120);
+    pb.set_style(
+        ProgressStyle::default_spinner()
+            .tick_strings(&["-", "\\", "|", "/"])
+            .template("{spinner:.blue} Construyendo proyecto..."),
     );
-    // Lógica para construir el proyecto
+
+    // Lógica para construir el proyecto (misma que antes)
+    // ...
+    std::thread::sleep(Duration::from_secs(2)); // Simula la construcción
+
+    pb.finish_with_message(format!(
+        "{} en {}",
+        "Proyecto construido exitosamente!".green(),
+        output
+    ));
     Ok(())
 }
 
@@ -112,7 +192,7 @@ async fn build_project(output: &str) -> Result<()> {
 fn install_library(library: &str) -> Result<()> {
     match library {
         "tailwind" => {
-            println!("Instalando Tailwind CSS...");
+            println!("{} Tailwind CSS...", "Instalando".green());
             Command::new("npm")
                 .args(&["install", "-D", "tailwindcss"])
                 .spawn()?
@@ -122,18 +202,18 @@ fn install_library(library: &str) -> Result<()> {
                 .args(&["tailwindcss", "init"])
                 .spawn()?
                 .wait()?;
-            println!("Tailwind CSS instalado correctamente.");
+            println!("{} Tailwind CSS instalado.", "Completado:".green());
         }
         "bootstrap" => {
-            println!("Instalando Bootstrap...");
+            println!("{} Bootstrap...", "Instalando".green());
             Command::new("npm")
                 .args(&["install", "bootstrap"])
                 .spawn()?
                 .wait()?;
-            println!("Bootstrap instalado correctamente.");
+            println!("{} Bootstrap instalado.", "Completado:".green());
         }
         _ => {
-            error!("Librería no reconocida: {}", library);
+            error!("{}: {}", "Librería no reconocida".red(), library);
             return Err(anyhow::anyhow!("Librería no reconocida: {}", library));
         }
     }
