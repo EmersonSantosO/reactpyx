@@ -1,5 +1,3 @@
-// core_reactpyx/src/precompiler.rs
-
 use pyo3::prelude::*;
 use std::fs;
 use std::path::Path;
@@ -8,8 +6,8 @@ use std::time::UNIX_EPOCH;
 
 #[pyclass]
 pub struct JSXPrecompiler {
-    pub cache: Arc<Mutex<String>>, // Almacena el resultado de la precompilación
-    pub last_modified: Arc<Mutex<u64>>, // Almacena el tiempo de la última modificación del archivo
+    pub cache: Arc<Mutex<String>>,
+    pub last_modified: Arc<Mutex<u64>>,
 }
 
 #[pymethods]
@@ -49,8 +47,7 @@ impl JSXPrecompiler {
             .as_secs();
 
         let mut last_modified = self.last_modified.lock().unwrap();
-        if *last_modified != modified_time {
-            // Solo recompilamos si el archivo ha sido modificado
+        if *last_modified != modified_time || should_recompile(path, *last_modified) {
             let jsx_code = fs::read_to_string(path).map_err(|e| {
                 PyErr::new::<pyo3::exceptions::PyIOError, _>(format!(
                     "Error al leer el archivo: {}",
@@ -68,11 +65,20 @@ impl JSXPrecompiler {
     }
 
     fn transform_jsx_to_python(&self, jsx_code: &str) -> String {
-        // Función que transforma el JSX en Python
         jsx_code
             .replace("<", "create_element(")
             .replace("/>", ");")
             .replace(">", ", [")
             .replace("</", "]);")
     }
+}
+fn should_recompile(file_path: &Path, last_modified: u64) -> bool {
+    if let Ok(metadata) = fs::metadata(file_path) {
+        if let Ok(modified_time) = metadata.modified() {
+            if let Ok(duration) = modified_time.duration_since(UNIX_EPOCH) {
+                return duration.as_secs() != last_modified;
+            }
+        }
+    }
+    false
 }

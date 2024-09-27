@@ -1,14 +1,12 @@
-// core_reactpyx/src/lazy_component.rs
-
 use pyo3::prelude::*;
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::Duration;
+use pyo3_asyncio::tokio::future_into_py;
+use std::sync::{Arc, RwLock};
 
 #[pyclass]
+#[derive(Clone)]
 pub struct LazyComponent {
-    pub is_loading: Arc<Mutex<bool>>,
-    pub result: Arc<Mutex<Option<String>>>,
+    pub is_loading: Arc<RwLock<bool>>,
+    pub result: Arc<RwLock<Option<String>>>,
 }
 
 #[pymethods]
@@ -16,41 +14,22 @@ impl LazyComponent {
     #[new]
     pub fn new() -> Self {
         LazyComponent {
-            is_loading: Arc::new(Mutex::new(true)),
-            result: Arc::new(Mutex::new(None)),
+            is_loading: Arc::new(RwLock::new(true)),
+            result: Arc::new(RwLock::new(None)),
         }
     }
 
-    pub fn load_resource(&self, delay: u64) {
+    pub fn load_resource_async<'py>(&self, delay: u64, py: Python<'py>) -> PyResult<&'py PyAny> {
         let is_loading_clone = Arc::clone(&self.is_loading);
         let result_clone = Arc::clone(&self.result);
 
-        thread::spawn(move || {
-            thread::sleep(Duration::from_secs(delay));
-            let mut is_loading = is_loading_clone.lock().unwrap();
-            let mut result = result_clone.lock().unwrap();
+        future_into_py(py, async move {
+            tokio::time::sleep(tokio::time::Duration::from_secs(delay)).await;
+            let mut is_loading = is_loading_clone.write().unwrap();
+            let mut result = result_clone.write().unwrap();
             *is_loading = false;
             *result = Some("Recurso cargado exitosamente".to_string());
-        });
-    }
-
-    pub fn is_loading(&self) -> PyResult<bool> {
-        let is_loading = self.is_loading.lock().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                "Error al adquirir el lock: {}",
-                e
-            ))
-        })?;
-        Ok(*is_loading)
-    }
-
-    pub fn get_result(&self) -> PyResult<Option<String>> {
-        let result = self.result.lock().map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                "Error al adquirir el lock: {}",
-                e
-            ))
-        })?;
-        Ok(result.clone())
+            Ok(())
+        })
     }
 }

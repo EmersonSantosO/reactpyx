@@ -1,0 +1,54 @@
+/* default/src/assets/styles.css */
+
+/* Variables CSS */
+:root {
+  --font-family: "Arial", sans-serif;
+  --background-color: #f4f4f4;
+  --primary-color: #333;
+  --padding-main: 20px;
+  --header-background: #fff;
+  --nav-link-color: #007bff;
+  --nav-link-hover: #0056b3;
+}
+
+body {
+  font-family: var(--font-family);
+  margin: 0;
+  padding: 0;
+  background-color: var(--background-color);
+}
+
+h1 {
+  color: var(--primary-color);
+}
+
+main {
+  padding: var(--padding-main);
+}
+
+header {
+  background-color: var(--header-background);
+  padding: 10px 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+nav a {
+  color: var(--nav-link-color);
+  text-decoration: none;
+  margin-right: 15px;
+}
+
+nav a:hover {
+  color: var(--nav-link-hover);
+}
+
+@media (max-width: 768px) {
+  main {
+    padding: 10px;
+  }
+
+  nav a {
+    display: block;
+    margin: 10px 0;
+  }
+}
