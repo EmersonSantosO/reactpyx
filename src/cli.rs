@@ -1,20 +1,30 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use indicatif::{ProgressBar, ProgressStyle};
 use log::error;
-use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
-use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 use pyo3_asyncio_0_21::tokio::future_into_py;
-use std::process::Command;
-use std::sync::mpsc::channel;
-use std::time::Duration;
 use tokio::runtime::Runtime;
 
+// Importa los módulos para la CLI
+mod cli_build_project;
+mod cli_create_project;
+mod cli_init_project;
+mod cli_install_library;
+mod cli_run_server;
+
+// Usa las funciones de los módulos
+use cli_build_project::build_project;
+use cli_create_project::create_project;
+use cli_init_project::init_project;
+use cli_install_library::install_library;
+use cli_run_server::run_server;
+
+// Runtime de Tokio
 static TOKIO_RUNTIME: Lazy<Runtime> =
     Lazy::new(|| Runtime::new().expect("Error al crear el runtime de Tokio"));
 
+// Definición de la CLI
 #[derive(Parser)]
 #[command(name = "reactpyx")]
 #[command(about = "Empaquetador rápido para ReactPyx construido en Rust.")]
@@ -47,9 +57,11 @@ enum Commands {
     },
 }
 
+// Función principal de la CLI
 pub fn run_cli() -> Result<()> {
     let cli = Cli::parse();
 
+    // Manejo de los subcomandos
     match cli.command {
         Commands::CreateProject { project_name } => {
             if let Err(e) = create_project(&project_name) {
@@ -83,140 +95,6 @@ pub fn run_cli() -> Result<()> {
         }
     }
 
-    Ok(())
-}
-
-fn create_project(project_name: &str) -> Result<()> {
-    // Barra de progreso para la creación del proyecto
-    let pb = ProgressBar::new_spinner();
-    pb.enable_steady_tick(120);
-    pb.set_style(
-        ProgressStyle::default_spinner()
-            .tick_strings(&["-", "\\", "|", "/"])
-            .template("{spinner:.blue} Creando proyecto: {msg}"),
-    );
-    pb.set_message(project_name.to_string());
-
-    // Lógica para crear un proyecto (misma que antes)
-    // ...
-    std::thread::sleep(Duration::from_secs(2)); // Simula la creación
-
-    pb.finish_with_message(format!(
-        "{} {}",
-        "Proyecto".green(),
-        "creado exitosamente!".green()
-    ));
-    Ok(())
-}
-
-fn init_project() -> Result<()> {
-    // Barra de progreso para la inicialización
-    let pb = ProgressBar::new_spinner();
-    pb.enable_steady_tick(120);
-    pb.set_style(
-        ProgressStyle::default_spinner()
-            .tick_strings(&["-", "\\", "|", "/"])
-            .template("{spinner:.blue} Inicializando proyecto..."),
-    );
-
-    // Lógica para inicializar el proyecto (misma que antes)
-    // ...
-    std::thread::sleep(Duration::from_secs(2)); // Simula la inicialización
-
-    pb.finish_with_message(format!(
-        "{} {}",
-        "Proyecto".green(),
-        "inicializado exitosamente!".green()
-    ));
-    Ok(())
-}
-
-async fn run_server() -> Result<()> {
-    println!(
-        "{} {}",
-        "Ejecutando el servidor de desarrollo...".yellow(),
-        "http://localhost:8000".blue()
-    );
-
-    // Lógica para ejecutar el servidor (misma que antes)
-    // ...
-
-    // Observar cambios en los archivos
-    let (tx, rx) = channel();
-    let mut watcher: RecommendedWatcher = Watcher::new(
-        tx,
-        Config::default().with_poll_interval(Duration::from_secs(2)),
-    )?;
-    watcher.watch("src", RecursiveMode::Recursive)?;
-
-    for res in rx {
-        match res {
-            Ok(event) => match event {
-                Event::Write(path) => {
-                    println!("{} {}", "Archivo modificado:".green(), path.display());
-                    // Recompilar el archivo modificado
-                    // ...
-                }
-                _ => {}
-            },
-            Err(e) => println!("{} {:?}", "Error al observar:".red(), e),
-        }
-    }
-
-    Ok(())
-}
-
-async fn build_project(output: &str) -> Result<()> {
-    // Barra de progreso para la construcción
-    let pb = ProgressBar::new_spinner();
-    pb.enable_steady_tick(120);
-    pb.set_style(
-        ProgressStyle::default_spinner()
-            .tick_strings(&["-", "\\", "|", "/"])
-            .template("{spinner:.blue} Construyendo proyecto..."),
-    );
-
-    // Lógica para construir el proyecto (misma que antes)
-    // ...
-    std::thread::sleep(Duration::from_secs(2)); // Simula la construcción
-
-    pb.finish_with_message(format!(
-        "{} en {}",
-        "Proyecto construido exitosamente!".green(),
-        output
-    ));
-    Ok(())
-}
-
-/// Nueva función para instalar librerías de estilos como Tailwind
-fn install_library(library: &str) -> Result<()> {
-    match library {
-        "tailwind" => {
-            println!("{} Tailwind CSS...", "Instalando".green());
-            Command::new("npm")
-                .args(&["install", "-D", "tailwindcss"])
-                .spawn()?
-                .wait()?;
-
-            Command::new("npx")
-                .args(&["tailwindcss", "init"])
-                .spawn()?
-                .wait()?;
-            println!("{} Tailwind CSS instalado.", "Completado:".green());
-        }
-        "bootstrap" => {
-            println!("{} Bootstrap...", "Instalando".green());
-            Command::new("npm")
-                .args(&["install", "bootstrap"])
-                .spawn()?
-                .wait()?;
-            println!("{} Bootstrap instalado.", "Completado:".green());
-        }
-        _ => {
-            error!("{}: {}", "Librería no reconocida".red(), library);
-            return Err(anyhow::anyhow!("Librería no reconocida: {}", library));
-        }
-    }
     Ok(())
 }
 
