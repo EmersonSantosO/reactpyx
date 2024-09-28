@@ -30,7 +30,7 @@ parking_lot = "0.12"
 md5 = "0.7"
 minifier = "0.3.1"
 prettyplease = "0.2.22"
-html5ever = "0.29.0"
+html5ever = "0.26.0"
 # Dependencias relacionadas con la CLI y pybolt
 clap = { version = "4.2.7", features = ["derive"] }
 colored = "2.0.0"
@@ -38,5 +38,9 @@ notify = "6.1.1"
 tokio-stream = { version = "0.1", features = ["fs"] }
 fs_extra = "1.2.0"
 rayon = "1.7.0"
-syn = { version = "2.0", features = ["full"] }
+syn = { version = "2.0.79", features = ["full"] }
 indicatif = "0.17.8"
+lightningcss = "1.0.0-alpha.59"
+
+markup5ever_rcdom = "0.2.0"
+ttl_cache = "0.5.1"

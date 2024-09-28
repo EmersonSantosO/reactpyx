@@ -1,13 +1,11 @@
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
-
 use pyo3::types::PyTuple;
 use pyo3::{prelude::*, wrap_pyfunction};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
-use tokio::runtime::Runtime;
 
 // Estado global organizado por componente y estado
 static GLOBAL_STATE: Lazy<DashMap<String, DashMap<String, Arc<Mutex<PyObject>>>>> =
@@ -32,7 +30,7 @@ impl SetState {
         SetState { component_id, key }
     }
 
-    fn set(&self, py: Python, new_value: PyObject) -> PyResult<()> {
+    fn set(&self, py: Python<'_>, new_value: PyObject) -> PyResult<()> {
         // Acceder al estado del componente específico
         let component_state = GLOBAL_STATE
             .entry(self.component_id.clone())
@@ -42,7 +40,7 @@ impl SetState {
             .entry(self.key.clone())
             .or_insert_with(|| Arc::new(Mutex::new(py.None())));
 
-        let mut state = lock.lock().unwrap(); // Acceso seguro
+        let mut state = lock.lock().expect("Failed to lock state"); // Acceso seguro
         *state = new_value.into_py(py);
         Ok(())
     }
@@ -67,7 +65,7 @@ impl Dispatch {
         }
     }
 
-    fn dispatch(&self, py: Python, action: PyObject) -> PyResult<()> {
+    fn dispatch(&self, py: Python<'_>, action: PyObject) -> PyResult<()> {
         // Acceder al estado del componente específico
         let component_state = GLOBAL_STATE
             .entry(self.component_id.clone())
@@ -77,11 +75,13 @@ impl Dispatch {
             .entry(self.key.clone())
             .or_insert_with(|| Arc::new(Mutex::new(py.None())));
 
-        let mut state = lock.lock().unwrap();
+        let mut state = lock.lock().expect("Failed to lock state");
 
         let reducer = self.reducer.bind(py);
 
-        let args = PyTuple::new(py, &[state.clone(), action]);
+        // Usar PyTuple::new_bound para pasar los argumentos correctamente
+        let args = PyTuple::new_bound(py, &[state.clone(), action]);
+
         let new_state = reducer.call1(args)?;
 
         *state = new_state.into_py(py);
@@ -105,7 +105,7 @@ pub fn use_state(
             .entry(key.to_string())
             .or_insert_with(|| Arc::new(Mutex::new(initial_value.clone())));
 
-        let state = lock.lock().unwrap();
+        let state = lock.lock().expect("Failed to lock state");
         let set_state: Py<SetState> =
             Py::new(py, SetState::new(component_id.to_string(), key.to_string()))?;
         Ok((state.clone(), set_state))
@@ -130,7 +130,7 @@ pub fn use_lazy_state(
             ))
         });
 
-        let state = lock.lock().unwrap();
+        let state = lock.lock().expect("Failed to lock state");
         Ok(state.clone())
     })
 }
@@ -142,7 +142,7 @@ pub fn use_context(component_id: &str, key: &str) -> PyResult<Option<PyObject>> 
         Ok(GLOBAL_STATE.get(component_id).and_then(|component_state| {
             component_state.get(key).map(|lock| {
                 // Bloquear el Mutex en un contexto síncrono
-                let state = lock.lock().unwrap();
+                let state = lock.lock().expect("Failed to lock state");
                 state.clone()
             })
         }))
@@ -153,8 +153,8 @@ pub fn use_context(component_id: &str, key: &str) -> PyResult<Option<PyObject>> 
 #[pyfunction]
 pub fn use_effect_with_deps(
     effect_id: &str,
-    py: Python,
-    effect_function: &PyAny,
+    py: Python<'_>,
+    effect_function: &Bound<'_, PyAny>,
     dependencies: Vec<PyObject>,
 ) -> PyResult<()> {
     let dependencies_hash = hash_dependencies(&dependencies);
@@ -175,7 +175,8 @@ pub fn use_effect_with_deps(
     });
 
     if should_run_effect {
-        let effect = effect_function.call1(PyTuple::new(py, &dependencies))?;
+        // Usar PyTuple::new_bound para pasar los argumentos correctamente
+        let effect = effect_function.call1(PyTuple::new_bound(py, &dependencies))?;
 
         // Ejecutar `cleanup` si existe
         if let Ok(cleanup) = effect.getattr("cleanup") {
@@ -203,7 +204,7 @@ pub fn use_reducer(
             .entry(key.to_string())
             .or_insert_with(|| Arc::new(Mutex::new(initial_state.clone())));
 
-        let state = lock.lock().unwrap();
+        let state = lock.lock().expect("Failed to lock state");
         let reducer_py = reducer.to_object(py).into();
         let dispatch: Py<Dispatch> = Py::new(
             py,
@@ -232,7 +233,7 @@ fn hash_dependencies(dependencies: &[PyObject]) -> u64 {
 
 // Módulo de PyO3 para exponer hooks
 #[pymodule]
-fn hooks(_py: Python, m: &PyModule) -> PyResult<()> {
+fn hooks(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<SetState>()?;
     m.add_class::<Dispatch>()?;
     m.add_function(wrap_pyfunction!(use_state, m)?)?;
@@ -244,11 +245,6 @@ fn hooks(_py: Python, m: &PyModule) -> PyResult<()> {
 }
 
 fn add_hooks_to_module(m: &PyModule) -> PyResult<()> {
-    use crate::hooks::{
-        use_context, use_effect_with_deps, use_lazy_state, use_reducer, use_state, Dispatch,
-        SetState,
-    };
-
     m.add_class::<SetState>()?;
     m.add_class::<Dispatch>()?;
     m.add_function(wrap_pyfunction!(use_state, m)?)?;
@@ -258,6 +254,3 @@ fn add_hooks_to_module(m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(use_effect_with_deps, m)?)?;
     Ok(())
 }
-
-static TOKIO_RUNTIME: Lazy<Runtime> =
-    Lazy::new(|| Runtime::new().expect("Error al crear el runtime de Tokio"));

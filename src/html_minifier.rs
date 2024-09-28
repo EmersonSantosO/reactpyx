@@ -4,18 +4,13 @@ use pyo3::prelude::*;
 #[pyfunction]
 pub fn minify_html_code(html_code: &str) -> PyResult<String> {
     // Sanear el HTML usando html5ever
-    let sanitized_html = sanitize_html(html_code)?;
+    let sanitized_html = sanitize_html(html_code)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
 
     // Minificar el HTML (puedes usar la lógica de minificación original o una biblioteca dedicada)
     let minified = minify_code(&sanitized_html);
 
     Ok(minified)
-}
-
-fn remove_html_comments(html_code: &str) -> String {
-    let comment_re = Regex::new(r"<!--[\s\S]*?-->")
-        .expect("Error compilando la expresión regular para comentarios de HTML");
-    comment_re.replace_all(html_code, "").to_string()
 }
 
 fn minify_code(code: &str) -> String {

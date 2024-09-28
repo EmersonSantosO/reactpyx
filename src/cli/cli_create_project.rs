@@ -1,15 +1,15 @@
 use anyhow::Result;
+use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
-use std::thread::Duration;
-
+use std::time::Duration;
 pub fn create_project(project_name: &str) -> Result<()> {
     // Barra de progreso para la creación del proyecto
     let pb = ProgressBar::new_spinner();
-    pb.enable_steady_tick(120);
+    pb.enable_steady_tick(Duration::from_millis(120));
     pb.set_style(
         ProgressStyle::default_spinner()
             .tick_strings(&["-", "\\", "|", "/"])
-            .template("{spinner:.blue} Creando proyecto: {msg}"),
+            .template("{spinner:.blue} Creando proyecto: {msg}")?,
     );
     pb.set_message(project_name.to_string());
 

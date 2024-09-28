@@ -1,13 +1,15 @@
-use minifier::css::minify;
+use lightningcss::stylesheet::{ParserOptions, PrinterOptions, StyleSheet};
 use pyo3::prelude::*;
 
 #[pyfunction]
 pub fn minify_css_code(css_code: &str) -> PyResult<String> {
-    match minify(css_code) {
-        Ok(minified) => Ok(minified.to_string()),
-        Err(e) => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-            "Error al minificar CSS: {}",
-            e
-        ))),
-    }
+    let options = ParserOptions::default();
+    let stylesheet = StyleSheet::parse(css_code, options).map_err(|e| {
+        PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Error al parsear CSS: {}", e))
+    })?;
+    // Minificar el CSS usando lightningcss
+    let minified = stylesheet.to_css(PrinterOptions::default()).map_err(|e| {
+        PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Error al minificar CSS: {}", e))
+    })?;
+    Ok(minified.code)
 }

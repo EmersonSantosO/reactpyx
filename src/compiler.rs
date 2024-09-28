@@ -1,29 +1,26 @@
-use anyhow::{Context, Result};
-use html5ever::{
-    parse_document,
-    rcdom::RcDom,
-    serialize,
-    tendril::TendrilSink,
-    tree_builder::{TreeBuilderOpts, TreeSink},
-};
+use crate::js_minifier::minify_js_code;
+use anyhow::{Context, Error, Result};
+use html5ever::tendril::TendrilSink;
+use html5ever::{parse_document, serialize};
 use log::{error, info};
+use markup5ever_rcdom::{RcDom, SerializableHandle};
 use md5;
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
+
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use syn::{self, File};
 use tokio::fs;
 use tokio::sync::RwLock;
+use tokio::task::spawn_blocking;
 use tokio_stream::wrappers::ReadDirStream;
 use tokio_stream::StreamExt;
 
-use crate::js_minifier::minify_js_code;
-use crate::precompiler::JSXPrecompiler; // Importar el precompilador de JSX
-
 // Usar RwLock para manejar concurrencia en el caché de transformación
-static TRANSFORM_CACHE: Lazy<Arc<RwLock<HashMap<String, String>>>> =
-    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
+use ttl_cache::TtlCache;
+
+static TRANSFORM_CACHE: Lazy<Arc<RwLock<TtlCache<String, String>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(TtlCache::new(1000, Duration::from_secs(60)))));
 
 /// Compila todos los archivos `.pyx` en el proyecto
 pub async fn compile_all_pyx(
@@ -96,18 +93,11 @@ async fn detect_components_in_directory(components_dir: &Path) -> Result<Vec<Str
                     let detected_components = detect_components_in_file(&path).await?;
                     components.extend(detected_components);
                 }
-                Some("jsx") => {
-                    info!("Precompilando archivo JSX: {:?}", path);
-                    let precompiler = JSXPrecompiler::new();
-                    match precompiler.precompile_jsx(path.to_str().unwrap()) {
-                        Ok(_) => info!("Precompilación JSX exitosa: {:?}", path),
-                        Err(e) => error!("Error precompilando JSX: {} - {:?}", e, path),
-                    }
-                }
                 _ => {}
             }
         } else if path.is_dir() {
-            let sub_components = detect_components_in_directory(&path).await?;
+            // Boxear el futuro para evitar un tamaño infinito
+            let sub_components = Box::pin(detect_components_in_directory(&path)).await?;
             components.extend(sub_components);
         }
     }
@@ -148,7 +138,7 @@ async fn detect_components_in_file(file_path: &Path) -> Result<Vec<String>> {
 pub async fn compile_pyx_file_to_python(file_path: &Path, _config_path: &str) -> Result<String> {
     let source_code = fs::read_to_string(file_path)
         .await
-        .with_context(|| format!("Error al leer el archivo {:?}", file_path))?;
+        .with_context(|| format!("Error al leer el archivo: {:?}", file_path))?;
 
     let python_code = transform_pyx_to_python(&source_code).await?;
 
@@ -170,14 +160,20 @@ async fn transform_pyx_to_python(pyx_code: &str) -> Result<String> {
         return Ok(cached_code);
     }
 
-    // Parsear y transformar el AST del código PyX
-    let syntax_tree: File =
-        syn::parse_file(pyx_code).with_context(|| "Error al parsear el código PyX")?;
-    let python_code = prettyplease::unparse(&syntax_tree);
+    // Clona pyx_code para evitar que escape su referencia
+    let pyx_code_cloned = pyx_code.to_string();
+    // Ejecutar el código que usa syn::File en un hilo bloqueado
+    let python_code = spawn_blocking(move || {
+        // Parsear y transformar el AST del código PyX
+        let syntax_tree: File =
+            syn::parse_file(&pyx_code_cloned).with_context(|| "Error al parsear el código PyX")?;
+        Ok::<String, Error>(prettyplease::unparse(&syntax_tree))
+    })
+    .await??; // Propaga los errores
 
     // Escribir el resultado al caché
     let mut write_guard = cache.write().await;
-    write_guard.insert(cache_key.clone(), python_code.clone());
+    write_guard.insert(cache_key, python_code.clone());
 
     Ok(python_code)
 }
@@ -251,10 +247,18 @@ pub async fn update_application(
 pub fn sanitize_html(html: &str) -> Result<String> {
     let dom = parse_document(RcDom::default(), Default::default())
         .from_utf8()
-        .read_from(&mut html.as_bytes())?;
+        .read_from(&mut html.as_bytes())
+        .map_err(|e| anyhow::anyhow!("Error al parsear HTML: {:?}", e))?;
 
-    let mut sanitized_html = String::new();
-    serialize(&mut sanitized_html, &dom.document, Default::default())?;
+    // Usa un Vec<u8> para la salida de serialize
+    let mut sanitized_html = Vec::new();
+    let serializable_handle = SerializableHandle::from(dom.document);
+    serialize(
+        &mut sanitized_html,
+        &serializable_handle,
+        Default::default(),
+    )
+    .map_err(|e| anyhow::anyhow!("Error al serializar HTML: {:?}", e))?;
 
-    Ok(sanitized_html)
+    Ok(String::from_utf8(sanitized_html)?)
 }

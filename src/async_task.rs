@@ -1,10 +1,11 @@
 use pyo3::prelude::*;
 use pyo3_asyncio_0_21::tokio::future_into_py;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
+
 #[pyclass]
 pub struct AsyncTaskManager {
-    is_complete: Arc<Mutex<bool>>, // Cambiado a `tokio::sync::Mutex`
+    is_complete: Arc<RwLock<bool>>,
 }
 
 #[pymethods]

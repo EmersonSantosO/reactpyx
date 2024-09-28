@@ -2,6 +2,7 @@ use pyo3::{prelude::*, wrap_pyfunction};
 use pyo3_asyncio_0_21::tokio::future_into_py;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
 #[pyclass]
 #[derive(Clone)]
 pub struct LazyComponent {
@@ -19,11 +20,7 @@ impl LazyComponent {
         }
     }
 
-    pub fn load_resource_async<'py>(
-        &self,
-        delay: u64,
-        py: Python<'py>,
-    ) -> PyResult<Bound<'py, PyAny>> {
+    pub fn load_resource_async<'py>(&self, delay: u64, py: Python<'py>) -> PyResult<&'py PyAny> {
         let is_loading_clone = Arc::clone(&self.is_loading);
         let result_clone = Arc::clone(&self.result);
 

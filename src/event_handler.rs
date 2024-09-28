@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 #[pyclass]
 #[derive(Clone)]
 pub struct EventHandler {
-    handlers: Arc<Mutex<Vec<PyObject>>>, // Usa `Mutex` para mejorar concurrencia de lectura
+    handlers: DashMap<String, Vec<PyObject>>, // Usa `Mutex` para mejorar concurrencia de lectura
 }
 
 #[pymethods]
@@ -17,12 +17,16 @@ impl EventHandler {
     }
 
     pub fn add_event_listener(&self, event: String, callback: PyObject) -> PyResult<()> {
+        if event.trim().is_empty() {
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "Evento no puede ser vacío",
+            ));
+        }
         let mut handlers = self
             .handlers
             .lock()
             .map_err(|_| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("Lock poisoned"))?;
         handlers.push(callback);
-        println!("Evento '{}' registrado", event);
         Ok(())
     }
 

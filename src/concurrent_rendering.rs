@@ -2,11 +2,11 @@ use pyo3::prelude::*;
 use pyo3_asyncio_0_21::tokio::future_into_py;
 
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 #[pyclass]
 pub struct ConcurrentRenderer {
-    pub is_complete: Arc<Mutex<bool>>,
+    pub is_complete: Arc<RwLock<bool>>,
 }
 
 #[pymethods]

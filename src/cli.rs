@@ -1,7 +1,8 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use log::error;
+use log::{error, info};
+use once_cell::sync::Lazy;
 use pyo3::prelude::*;
 use pyo3_asyncio_0_21::tokio::future_into_py;
 use tokio::runtime::Runtime;
@@ -20,9 +21,13 @@ use cli_init_project::init_project;
 use cli_install_library::install_library;
 use cli_run_server::run_server;
 
-// Runtime de Tokio
-static TOKIO_RUNTIME: Lazy<Runtime> =
-    Lazy::new(|| Runtime::new().expect("Error al crear el runtime de Tokio"));
+// Runtime de Tokio con mejor manejo de errores y compatibilidad
+static TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("Error al crear el runtime de Tokio")
+});
 
 // Definición de la CLI
 #[derive(Parser)]
@@ -64,31 +69,44 @@ pub fn run_cli() -> Result<()> {
     // Manejo de los subcomandos
     match cli.command {
         Commands::CreateProject { project_name } => {
-            if let Err(e) = create_project(&project_name) {
+            if let Err(e) = create_project(&project_name).context("Error al crear el proyecto") {
                 error!("{} {}", "Error al crear el proyecto:".red(), e);
                 std::process::exit(1);
             }
         }
         Commands::Init => {
-            if let Err(e) = init_project() {
+            if let Err(e) = init_project().context("Error al inicializar el proyecto") {
                 error!("{} {}", "Error al inicializar el proyecto:".red(), e);
                 std::process::exit(1);
             }
         }
         Commands::Run => {
-            if let Err(e) = TOKIO_RUNTIME.block_on(run_server()) {
+            if let Err(e) = TOKIO_RUNTIME
+                .block_on(run_server())
+                .context("Error al ejecutar el servidor")
+            {
                 error!("{} {}", "Error al ejecutar el servidor:".red(), e);
                 std::process::exit(1);
             }
         }
         Commands::Build { output } => {
-            if let Err(e) = TOKIO_RUNTIME.block_on(build_project(&output)) {
+            if let Err(e) = TOKIO_RUNTIME
+                .block_on(build_project(&output))
+                .context("Error al construir el proyecto")
+            {
                 error!("{} {}", "Error al construir el proyecto:".red(), e);
                 std::process::exit(1);
             }
         }
         Commands::Install { library } => {
-            if let Err(e) = install_library(&library) {
+            // Validar el nombre de la librería antes de continuar
+            let allowed_libraries = vec!["tailwind", "bootstrap"];
+            if !allowed_libraries.contains(&library.as_str()) {
+                error!("{} {}", "Librería no reconocida:".red(), library);
+                std::process::exit(1);
+            }
+
+            if let Err(e) = install_library(&library).context("Error al instalar la librería") {
                 error!("{} {}", "Error al instalar la librería:".red(), e);
                 std::process::exit(1);
             }
@@ -114,8 +132,9 @@ pub fn create_project_py(project_name: &str) -> PyResult<()> {
 pub fn init_project_py() -> PyResult<()> {
     init_project().map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
 }
+
 #[pyfunction]
-pub fn run_server_py(py: Python) -> PyResult<Bound<PyAny>> {
+pub fn run_server_py(py: Python) -> PyResult<Py<PyAny>> {
     future_into_py(py, async {
         run_server()
             .await
@@ -124,7 +143,7 @@ pub fn run_server_py(py: Python) -> PyResult<Bound<PyAny>> {
 }
 
 #[pyfunction]
-pub fn build_project_py<'a>(output: &'a str, py: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
+pub fn build_project_py<'a>(output: &'a str, py: Python<'a>) -> PyResult<Py<PyAny>> {
     let output = output.to_string(); // Clona la cadena para hacerla `'static`
     future_into_py(py, async move {
         build_project(&output)
