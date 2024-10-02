@@ -1,38 +1,35 @@
-use anyhow::{Context, Result};
-use clap::{Parser, Subcommand};
-use colored::Colorize;
-use log::{error, info};
+use anyhow::Context;
+use clap::Parser;
+use clap_derive::{Parser, Subcommand};
 use once_cell::sync::Lazy;
-use pyo3::prelude::*;
-use pyo3_asyncio_0_21::tokio::future_into_py;
 use tokio::runtime::Runtime;
 
-// Importa los módulos para la CLI
 mod cli_build_project;
 mod cli_create_project;
 mod cli_init_project;
 mod cli_install_library;
 mod cli_run_server;
 
-// Usa las funciones de los módulos
 use cli_build_project::build_project;
 use cli_create_project::create_project;
 use cli_init_project::init_project;
 use cli_install_library::install_library;
 use cli_run_server::run_server;
+use log::{error, info};
 
-// Runtime de Tokio con mejor manejo de errores y compatibilidad
 static TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
-        .expect("Error al crear el runtime de Tokio")
+        .expect("Error creating Tokio runtime")
 });
 
-// Definición de la CLI
+const ENV_OPTIONS: &[&str] = &["node", "python"];
+const ALLOWED_LIBRARIES: &[&str] = &["tailwind", "bootstrap"];
+
 #[derive(Parser)]
 #[command(name = "reactpyx")]
-#[command(about = "Empaquetador rápido para ReactPyx construido en Rust.")]
+#[command(about = "ReactPyx CLI built in Rust.")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -40,114 +37,83 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Crear un nuevo proyecto ReactPyx
+    /// Create a new ReactPyx project
     CreateProject {
-        /// Nombre del proyecto
+        /// Project name
         project_name: String,
     },
-    /// Inicializar el proyecto (instalar dependencias)
-    Init,
-    /// Ejecutar el servidor de desarrollo
+    /// Initialize project (install dependencies)
+    Init {
+        /// Specify the environment (development or production)
+        #[arg(short, long, default_value = "development")]
+        env: String,
+    },
+    /// Run the development server
     Run,
-    /// Construir el proyecto para producción
+    /// Build the project for production (Node.js or Python)
     Build {
-        /// Directorio de salida para los archivos construidos
+        /// Deployment environment (node or python)
+        #[arg(short, long)]
+        env: String,
+        /// Output directory for compiled files
         #[arg(short, long, default_value = "dist")]
         output: String,
     },
-    /// Instalar una librería de estilos (por ejemplo: tailwind, bootstrap)
+    /// Install a style library (e.g., tailwind, bootstrap)
     Install {
-        /// Nombre de la librería (por ejemplo: tailwind)
+        /// Name of the library (e.g., tailwind)
         library: String,
     },
 }
 
-// Función principal de la CLI
-pub fn run_cli() -> Result<()> {
+pub fn run_cli() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    // Manejo de los subcomandos
     match cli.command {
         Commands::CreateProject { project_name } => {
-            if let Err(e) = create_project(&project_name).context("Error al crear el proyecto") {
-                error!("{} {}", "Error al crear el proyecto:".red(), e);
-                std::process::exit(1);
-            }
+            info!("Creating project: {}", project_name);
+            create_project(&project_name).context("Error creating project")?;
         }
-        Commands::Init => {
-            if let Err(e) = init_project().context("Error al inicializar el proyecto") {
-                error!("{} {}", "Error al inicializar el proyecto:".red(), e);
+        Commands::Init { env } => {
+            info!("Initializing project in {} mode", env);
+            if !["development", "production"].contains(&env.as_str()) {
+                error!(
+                    "Invalid environment: {}. Use 'development' or 'production'.",
+                    env
+                );
                 std::process::exit(1);
             }
+            init_project(&env).context("Error initializing project")?;
         }
         Commands::Run => {
-            if let Err(e) = TOKIO_RUNTIME
+            info!("Running development server");
+            TOKIO_RUNTIME
                 .block_on(run_server())
-                .context("Error al ejecutar el servidor")
-            {
-                error!("{} {}", "Error al ejecutar el servidor:".red(), e);
-                std::process::exit(1);
-            }
+                .context("Error running server")?;
         }
-        Commands::Build { output } => {
-            if let Err(e) = TOKIO_RUNTIME
-                .block_on(build_project(&output))
-                .context("Error al construir el proyecto")
-            {
-                error!("{} {}", "Error al construir el proyecto:".red(), e);
+        Commands::Build { env, output } => {
+            info!("Building project for {} environment", env);
+            if !ENV_OPTIONS.contains(&env.as_str()) {
+                error!("Unrecognized environment: {}. Use 'node' or 'python'.", env);
                 std::process::exit(1);
             }
+            TOKIO_RUNTIME
+                .block_on(build_project(&output, &env))
+                .context("Error building project")?;
         }
         Commands::Install { library } => {
-            // Validar el nombre de la librería antes de continuar
-            let allowed_libraries = vec!["tailwind", "bootstrap"];
-            if !allowed_libraries.contains(&library.as_str()) {
-                error!("{} {}", "Librería no reconocida:".red(), library);
+            info!("Installing library: {}", library);
+            if !ALLOWED_LIBRARIES.contains(&library.as_str()) {
+                error!(
+                    "Unrecognized library: {}. Allowed libraries are: {:?}",
+                    library, ALLOWED_LIBRARIES
+                );
                 std::process::exit(1);
             }
-
-            if let Err(e) = install_library(&library).context("Error al instalar la librería") {
-                error!("{} {}", "Error al instalar la librería:".red(), e);
-                std::process::exit(1);
-            }
+            install_library(&library).context("Error installing library")?;
         }
     }
 
+    info!("Command executed successfully.");
     Ok(())
-}
-
-// Exponer funciones a Python usando PyO3.
-#[pyfunction]
-pub fn run_cli_py() -> PyResult<()> {
-    run_cli().map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
-}
-
-#[pyfunction]
-pub fn create_project_py(project_name: &str) -> PyResult<()> {
-    create_project(project_name)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
-}
-
-#[pyfunction]
-pub fn init_project_py() -> PyResult<()> {
-    init_project().map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
-}
-
-#[pyfunction]
-pub fn run_server_py(py: Python) -> PyResult<Py<PyAny>> {
-    future_into_py(py, async {
-        run_server()
-            .await
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
-    })
-}
-
-#[pyfunction]
-pub fn build_project_py<'a>(output: &'a str, py: Python<'a>) -> PyResult<Py<PyAny>> {
-    let output = output.to_string(); // Clona la cadena para hacerla `'static`
-    future_into_py(py, async move {
-        build_project(&output)
-            .await
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
-    })
 }

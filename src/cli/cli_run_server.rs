@@ -19,7 +19,7 @@ pub async fn run_server() -> Result<()> {
         .arg("--reload")
         .spawn()?;
 
-    // Observa cambios en los archivos
+    // Observa cambios en los archivos de la carpeta `src`
     let (tx, rx) = channel();
     let mut watcher: RecommendedWatcher = Watcher::new(
         tx,
@@ -27,20 +27,17 @@ pub async fn run_server() -> Result<()> {
     )?;
     watcher.watch(Path::new("src"), RecursiveMode::Recursive)?;
 
+    // Maneja eventos de cambio
     for res in rx {
         match res {
             Ok(event) => match event.kind {
-                notify::EventKind::Create(_) => {
-                    println!("{} {}", "Archivo creado:".green(), event.paths[0].display());
-                    //  Aquí puedes agregar lógica para recompilar el archivo modificado
-                }
-                notify::EventKind::Modify(_) => {
+                notify::EventKind::Create(_) | notify::EventKind::Modify(_) => {
                     println!(
                         "{} {}",
                         "Archivo modificado:".green(),
                         event.paths[0].display()
                     );
-                    //  Aquí puedes agregar lógica para recompilar el archivo modificado
+                    // Lógica para manejar la recarga del servidor o la recompilación
                 }
                 _ => {}
             },

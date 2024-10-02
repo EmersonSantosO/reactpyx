@@ -15,6 +15,7 @@ pub struct Config {
 }
 
 impl Config {
+    /// Carga y analiza el archivo de configuración
     pub fn load(config_path: &str) -> Result<Self> {
         let config_content = fs::read_to_string(config_path).with_context(|| {
             format!(
@@ -22,8 +23,10 @@ impl Config {
                 config_path
             )
         })?;
+
         let config: Config = serde_json::from_str(&config_content)
             .with_context(|| "Error al parsear el archivo de configuración JSON")?;
+
         Ok(config)
     }
 }

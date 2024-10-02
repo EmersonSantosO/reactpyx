@@ -1,56 +1,59 @@
+// Modules that make up the core of ReactPyx
 mod cli;
 mod compiler;
 mod css_minifier;
+mod event_handler; // Event handler for the framework
 mod hooks;
 mod html_minifier;
 mod js_minifier;
 mod jsx_transformer;
-mod virtual_dom;
+mod virtual_dom; // Virtual DOM for component management and updates
 
-use crate::cli::{build_project_py, create_project_py, init_project_py, run_cli_py, run_server_py};
-use crate::compiler::{
-    compile_all_pyx, compile_pyx_file_to_python, compile_pyx_to_js, update_application,
-};
+use crate::compiler::{compile_all_pyx, compile_pyx_file_to_python, update_application};
 use crate::hooks::{Dispatch, SetState};
 use crate::virtual_dom::Patch;
-use log::info;
+use log::{error, info};
 use once_cell::sync::Lazy;
 use pyo3::{prelude::*, wrap_pyfunction};
-use pyo3_asyncio_0_21::tokio::{future_into_py_with_locals, get_current_locals};
 use std::sync::Once;
 use tokio::runtime::Runtime;
 
+// Initialize Tokio for asynchronous use
 static TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
-        .expect("Error al crear el runtime de Tokio")
+        .expect("Error creating Tokio runtime")
 });
 
 static LOGGER_INIT: Once = Once::new();
 
+/// Main module of ReactPyx in Rust for Python
 #[pymodule]
-fn core_reactpyx(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    // Asegura que `env_logger` solo se inicialice una vez
+fn core_reactpyx(py: Python, m: &PyModule) -> PyResult<()> {
+    // Initialize the logger only once
     LOGGER_INIT.call_once(|| env_logger::init());
 
-    // Exponer clases y funciones
-    m.add_class::<Patch>()?;
-    add_hooks_to_module(m)?;
-    add_minifiers_to_module(m)?;
-    add_jsx_transformers_to_module(m)?;
-    add_compiler_to_module(m)?;
-    add_cli_to_module(m)?;
+    // Register all necessary classes and functions
+    m.add_class::<Patch>()?; // Virtual DOM Patch
 
-    info!("CLI y lógica de compilación migradas correctamente.");
+    // Register additional functions and modules
+    add_jsx_transformers_to_module(py, m)?;
+    add_hooks_to_module(py, m)?;
+    add_minifiers_to_module(py, m)?;
+    add_compiler_to_module(py, m)?;
+    add_event_handlers_to_module(py, m)?;
+    add_virtual_dom_to_module(py, m)?;
 
+    info!("ReactPyx Core and CLI successfully initialized.");
     Ok(())
 }
 
-/// Función para agregar hooks al módulo de PyO3
-fn add_hooks_to_module(m: &PyModule) -> PyResult<()> {
+/// Add hooks to the PyO3 module
+fn add_hooks_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     use crate::hooks::{use_context, use_effect_with_deps, use_lazy_state, use_reducer, use_state};
 
+    // Add hook classes and functions
     m.add_class::<SetState>()?;
     m.add_class::<Dispatch>()?;
     m.add_function(wrap_pyfunction!(use_state, m)?)?;
@@ -61,140 +64,153 @@ fn add_hooks_to_module(m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-/// Función para agregar minificadores al módulo de PyO3
-fn add_minifiers_to_module(m: &PyModule) -> PyResult<()> {
+/// Add minifiers to the PyO3 module
+fn add_minifiers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     use crate::css_minifier::minify_css_code;
     use crate::html_minifier::minify_html_code;
     use crate::js_minifier::minify_js_code;
 
-    m.add_function(wrap_pyfunction!(minify_js_code, m)?)?;
+    // Add CSS, HTML, and JS minification functions
     m.add_function(wrap_pyfunction!(minify_css_code, m)?)?;
     m.add_function(wrap_pyfunction!(minify_html_code, m)?)?;
+    m.add_function(wrap_pyfunction!(minify_js_code, m)?)?;
     Ok(())
 }
 
-/// Función para agregar transformadores de JSX al módulo de PyO3
-fn add_jsx_transformers_to_module(m: &PyModule) -> PyResult<()> {
+/// Add JSX transformers to the PyO3 module
+fn add_jsx_transformers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     use crate::jsx_transformer::{incremental_jsx_transform, parse_jsx};
 
+    // Add functions to transform JSX
     m.add_function(wrap_pyfunction!(parse_jsx, m)?)?;
     m.add_function(wrap_pyfunction!(incremental_jsx_transform, m)?)?;
     Ok(())
 }
 
-/// Función para agregar funcionalidades del compilador al módulo de PyO3
-fn add_compiler_to_module(m: &PyModule) -> PyResult<()> {
+fn add_compiler_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
+    use crate::compiler::{
+        compile_all_pyx_py, compile_pyx_file_to_python_py, compile_pyx_to_js_py,
+        update_application_py,
+    };
+
+    // Add compilation functions
     m.add_function(wrap_pyfunction!(compile_all_pyx_py, m)?)?;
     m.add_function(wrap_pyfunction!(compile_pyx_file_to_python_py, m)?)?;
-    m.add_function(wrap_pyfunction!(update_application_py, m)?)?;
     m.add_function(wrap_pyfunction!(compile_pyx_to_js_py, m)?)?;
+    m.add_function(wrap_pyfunction!(update_application_py, m)?)?;
     Ok(())
 }
 
-/// Función para agregar funcionalidades del CLI al módulo de PyO3
-fn add_cli_to_module(m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(run_cli_py, m)?)?;
-    m.add_function(wrap_pyfunction!(create_project_py, m)?)?;
-    m.add_function(wrap_pyfunction!(init_project_py, m)?)?;
-    m.add_function(wrap_pyfunction!(run_server_py, m)?)?;
-    m.add_function(wrap_pyfunction!(build_project_py, m)?)?;
+/// Add event handlers to the PyO3 module
+fn add_event_handlers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
+    use crate::event_handler::EventHandler; // Import the event handler
+
+    // Add EventHandler class
+    m.add_class::<EventHandler>()?;
     Ok(())
 }
 
-/// Validar rutas para asegurar que no estén vacías
+/// Add Virtual DOM and related functionalities to the PyO3 module
+fn add_virtual_dom_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
+    use crate::virtual_dom::VNode;
+
+    // Add VNode class for Virtual DOM
+    m.add_class::<VNode>()?;
+    Ok(())
+}
+
+/// Validate paths to prevent empty paths
 fn validate_path(path: &str) -> PyResult<()> {
     if path.trim().is_empty() {
-        Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "El path no puede estar vacío",
-        ))
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "The path cannot be empty.",
+        ));
+    } else if path.contains(&['\\', '/', ':', '*', '?', '"', '<', '>', '|'][..]) {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "The path contains invalid characters.",
+        ));
     } else {
         Ok(())
     }
 }
+
+/// Compile all `.pyx` files in a project
 #[pyfunction]
-fn compile_all_pyx_py<'a>(
-    project_root: &'a str,
-    config_path: &'a str,
-    py: Python<'a>,
-) -> PyResult<Py<PyAny>> {
+fn compile_all_pyx_py(project_root: &str, config_path: &str, target_env: &str) -> PyResult<()> {
     validate_path(project_root)?;
     validate_path(config_path)?;
 
-    let project_root = project_root.to_string();
-    let config_path = config_path.to_string();
-
-    let locals = get_current_locals(py)?;
-
-    future_into_py_with_locals(py, locals, async move {
-        compile_all_pyx(&project_root, &config_path)
+    // Execute compilation in Tokio Runtime
+    TOKIO_RUNTIME.block_on(async move {
+        compile_all_pyx(project_root, config_path, target_env)
             .await
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+        Ok(())
     })
-    .map(|res| res.into())
 }
 
+/// Compile a `.pyx` file to Python
 #[pyfunction]
-fn compile_pyx_file_to_python_py<'a>(
-    file_path: &'a str,
-    config_path: &'a str,
-    py: Python<'a>,
-) -> PyResult<Py<PyAny>> {
+fn compile_pyx_file_to_python_py(
+    file_path: &str,
+    config_path: &str,
+    target_env: &str,
+) -> PyResult<()> {
     validate_path(file_path)?;
     validate_path(config_path)?;
 
     let path = std::path::PathBuf::from(file_path);
-    let config_path = config_path.to_string();
-    let locals = get_current_locals(py)?;
 
-    future_into_py_with_locals(py, locals, async move {
-        compile_pyx_file_to_python(&path, &config_path)
+    // Execute compilation in Tokio Runtime
+    TOKIO_RUNTIME.block_on(async move {
+        compile_pyx_file_to_python(&path, config_path, target_env)
             .await
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+        Ok(())
     })
-    .map(|res| res.into())
 }
 
+/// Update the application when source code changes
 #[pyfunction]
-fn update_application_py<'a>(
-    module_name: &'a str,
-    code: &'a str,
-    entry_function: &'a str,
-    project_root: &'a str,
-    py: Python<'a>,
-) -> PyResult<Py<PyAny>> {
-    let module_name = module_name.to_string();
-    let code = code.to_string();
-    let entry_function = entry_function.to_string();
-    let project_root = project_root.to_string();
+fn update_application_py(
+    module_name: &str,
+    code: &str,
+    entry_function: &str,
+    project_root: &str,
+) -> PyResult<()> {
+    validate_path(module_name)?;
+    validate_path(entry_function)?;
+    validate_path(project_root)?;
 
-    let project_root_path = std::path::PathBuf::from(project_root);
-    let locals = get_current_locals(py)?;
+    // Convert project_root to a String for compatibility
+    let project_root_path = project_root.to_string();
 
-    future_into_py_with_locals(py, locals, async move {
-        update_application(&module_name, &code, &entry_function, project_root_path)
+    // Execute application update in Tokio Runtime
+    TOKIO_RUNTIME.block_on(async move {
+        update_application(module_name, code, entry_function, project_root_path)
             .await
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+        Ok(())
     })
-    .map(|res| res.into())
 }
 
+/// Compile a `.pyx` file to JavaScript
 #[pyfunction]
-fn compile_pyx_to_js_py<'a>(
-    entry_file: &'a str,
-    config_path: &'a str,
-    output_dir: &'a str,
-    py: Python<'a>,
-) -> PyResult<Py<PyAny>> {
-    let entry_file = entry_file.to_string();
-    let config_path = config_path.to_string();
-    let output_dir = output_dir.to_string();
+fn compile_pyx_to_js_py(
+    entry_file: &str,
+    config_path: &str,
+    output_dir: &str,
+    target_env: &str,
+) -> PyResult<()> {
+    validate_path(entry_file)?;
+    validate_path(config_path)?;
+    validate_path(output_dir)?;
 
-    let locals = get_current_locals(py)?;
-
-    future_into_py_with_locals(py, locals, async move {
-        compile_pyx_to_js(&entry_file, &config_path, &output_dir)
+    // Execute compilation to JS in Tokio Runtime
+    TOKIO_RUNTIME.block_on(async move {
+        compile_pyx_to_js(entry_file, config_path, output_dir, target_env)
             .await
-            .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))?;
+        Ok(())
     })
-    .map(|res| res.into())
 }

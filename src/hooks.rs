@@ -1,18 +1,17 @@
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
-use pyo3::types::PyTuple;
-use pyo3::{prelude::*, wrap_pyfunction};
+use pyo3::prelude::*;
+use pyo3::types::{PyAny, PyTuple};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
 
-// Estado global organizado por componente y estado
+// Global state managed by components
 static GLOBAL_STATE: Lazy<DashMap<String, DashMap<String, Arc<Mutex<PyObject>>>>> =
     Lazy::new(DashMap::new);
 
 thread_local! {
-    // Cache para dependencias de efectos, separadas por identificador de efecto
+    // Cache for effect dependencies, organized by effect ID
     static LAST_EFFECT_DEPS: RefCell<HashMap<String, u64>> = RefCell::new(HashMap::new());
 }
 
@@ -30,8 +29,8 @@ impl SetState {
         SetState { component_id, key }
     }
 
+    /// Method to update the component state
     fn set(&self, py: Python<'_>, new_value: PyObject) -> PyResult<()> {
-        // Acceder al estado del componente específico
         let component_state = GLOBAL_STATE
             .entry(self.component_id.clone())
             .or_insert_with(DashMap::new);
@@ -40,14 +39,18 @@ impl SetState {
             .entry(self.key.clone())
             .or_insert_with(|| Arc::new(Mutex::new(py.None())));
 
-        let mut state = lock.lock().expect("Failed to lock state"); // Acceso seguro
-        *state = new_value.into_py(py);
+        let mut state = lock.lock().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                "Failed to lock state: {:?}",
+                e
+            ))
+        })?;
+        *state = new_value;
         Ok(())
     }
 }
 
 #[pyclass]
-#[derive(Clone)]
 pub struct Dispatch {
     pub key: String,
     pub component_id: String,
@@ -65,8 +68,8 @@ impl Dispatch {
         }
     }
 
+    /// Method to dispatch an action and update the state
     fn dispatch(&self, py: Python<'_>, action: PyObject) -> PyResult<()> {
-        // Acceder al estado del componente específico
         let component_state = GLOBAL_STATE
             .entry(self.component_id.clone())
             .or_insert_with(DashMap::new);
@@ -75,21 +78,21 @@ impl Dispatch {
             .entry(self.key.clone())
             .or_insert_with(|| Arc::new(Mutex::new(py.None())));
 
-        let mut state = lock.lock().expect("Failed to lock state");
+        let mut state = lock.lock().map_err(|e| {
+            PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                "Failed to lock state: {:?}",
+                e
+            ))
+        })?;
 
-        let reducer = self.reducer.bind(py);
-
-        // Usar PyTuple::new_bound para pasar los argumentos correctamente
-        let args = PyTuple::new_bound(py, &[state.clone(), action]);
-
-        let new_state = reducer.call1(args)?;
-
-        *state = new_state.into_py(py);
+        let args = PyTuple::new(py, &[state.clone_ref(py), action]);
+        let new_state = self.reducer.call1(py, args)?;
+        *state = new_state;
         Ok(())
     }
 }
 
-// Hook para `useState`
+/// Hook for managing component state
 #[pyfunction]
 pub fn use_state(
     component_id: &str,
@@ -103,17 +106,25 @@ pub fn use_state(
 
         let lock = component_state
             .entry(key.to_string())
-            .or_insert_with(|| Arc::new(Mutex::new(initial_value.clone())));
+            .or_insert_with(|| Arc::new(Mutex::new(initial_value.clone_ref(py))));
 
-        let state = lock.lock().expect("Failed to lock state");
+        let state = lock
+            .lock()
+            .map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Failed to lock state: {:?}",
+                    e
+                ))
+            })?
+            .clone_ref(py);
         let set_state: Py<SetState> =
             Py::new(py, SetState::new(component_id.to_string(), key.to_string()))?;
-        Ok((state.clone(), set_state))
+        Ok((state, set_state))
     })
 }
 
-// Hook para `useLazyState`
-#[pyfunction]
+/// Lazy initialization of state
+#[pyfunction(signature = (component_id, key, initial_value=None))]
 pub fn use_lazy_state(
     component_id: &str,
     key: &str,
@@ -126,73 +137,95 @@ pub fn use_lazy_state(
 
         let lock = component_state.entry(key.to_string()).or_insert_with(|| {
             Arc::new(Mutex::new(
-                initial_value.clone().unwrap_or_else(|| py.None()),
+                initial_value
+                    .as_ref()
+                    .map_or_else(|| py.None(), |v| v.clone_ref(py)),
             ))
         });
 
-        let state = lock.lock().expect("Failed to lock state");
-        Ok(state.clone())
+        let state = lock
+            .lock()
+            .map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Failed to lock state: {:?}",
+                    e
+                ))
+            })?
+            .clone_ref(py);
+        Ok(state)
     })
 }
 
-// Hook para `useContext`
+/// Access shared context within a component
 #[pyfunction]
 pub fn use_context(component_id: &str, key: &str) -> PyResult<Option<PyObject>> {
-    Python::with_gil(|_| {
+    Python::with_gil(|py| {
         Ok(GLOBAL_STATE.get(component_id).and_then(|component_state| {
             component_state.get(key).map(|lock| {
-                // Bloquear el Mutex en un contexto síncrono
-                let state = lock.lock().expect("Failed to lock state");
-                state.clone()
+                let state = lock.lock().expect("Error locking state").clone_ref(py);
+                state
             })
         }))
     })
 }
 
-// Hook para `useEffect` con dependencias
+/// Hook for effects with dependencies
 #[pyfunction]
 pub fn use_effect_with_deps(
     effect_id: &str,
-    py: Python<'_>,
-    effect_function: &Bound<'_, PyAny>,
+    effect_function: Py<PyAny>,
     dependencies: Vec<PyObject>,
 ) -> PyResult<()> {
-    let dependencies_hash = hash_dependencies(&dependencies);
+    Python::with_gil(|py| {
+        let dependencies_hash = hash_dependencies(&dependencies, py)?;
 
-    let should_run_effect = LAST_EFFECT_DEPS.with(|deps_map| {
-        let mut deps_map = deps_map.borrow_mut();
-        let last_deps_hash = deps_map.get(effect_id);
+        let should_run_effect = LAST_EFFECT_DEPS.with(|deps_map| {
+            let mut deps_map = deps_map.borrow_mut();
+            let last_deps_hash = deps_map.get(effect_id);
 
-        // Comparar el hash de las dependencias previas con las nuevas
-        let has_changed = match last_deps_hash {
-            Some(prev_hash) => prev_hash != &dependencies_hash,
-            None => true,
-        };
+            let has_changed = match last_deps_hash {
+                Some(prev_hash) => prev_hash != &dependencies_hash,
+                None => true,
+            };
 
-        // Actualizar las dependencias guardadas
-        deps_map.insert(effect_id.to_string(), dependencies_hash);
-        has_changed
-    });
+            deps_map.insert(effect_id.to_string(), dependencies_hash);
+            has_changed
+        });
 
-    if should_run_effect {
-        // Usar PyTuple::new_bound para pasar los argumentos correctamente
-        let effect = effect_function.call1(PyTuple::new_bound(py, &dependencies))?;
-
-        // Ejecutar `cleanup` si existe
-        if let Ok(cleanup) = effect.getattr("cleanup") {
-            cleanup.call0()?;
+        if should_run_effect {
+            effect_function.call1(py, (dependencies,))?;
         }
-    }
 
-    Ok(())
+        Ok(())
+    })
 }
 
-// Hook para `useReducer`
+/// Calculate hash for dependencies
+fn hash_dependencies(dependencies: &[PyObject], py: Python<'_>) -> PyResult<u64> {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+
+    let mut hasher = DefaultHasher::new();
+
+    for dep in dependencies {
+        let id = dep.call_method0(py, "__hash__").map_err(|_| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>("Failed to hash dependency")
+        })?;
+        let id_value: isize = id.extract(py).map_err(|_| {
+            PyErr::new::<pyo3::exceptions::PyValueError, _>("Failed to extract hash value")
+        })?;
+        id_value.hash(&mut hasher);
+    }
+
+    Ok(hasher.finish())
+}
+
+/// Hook for handling state with a reducer
 #[pyfunction]
 pub fn use_reducer(
     component_id: &str,
     key: &str,
-    reducer: &PyAny,
+    reducer: Py<PyAny>,
     initial_state: PyObject,
 ) -> PyResult<(PyObject, Py<Dispatch>)> {
     Python::with_gil(|py| {
@@ -202,49 +235,28 @@ pub fn use_reducer(
 
         let lock = component_state
             .entry(key.to_string())
-            .or_insert_with(|| Arc::new(Mutex::new(initial_state.clone())));
+            .or_insert_with(|| Arc::new(Mutex::new(initial_state.clone_ref(py))));
 
-        let state = lock.lock().expect("Failed to lock state");
-        let reducer_py = reducer.to_object(py).into();
+        let state = lock
+            .lock()
+            .map_err(|e| {
+                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
+                    "Failed to lock state: {:?}",
+                    e
+                ))
+            })?
+            .clone_ref(py);
         let dispatch: Py<Dispatch> = Py::new(
             py,
-            Dispatch::new(component_id.to_string(), key.to_string(), reducer_py),
+            Dispatch::new(component_id.to_string(), key.to_string(), reducer),
         )?;
-        Ok((state.clone(), dispatch))
+        Ok((state, dispatch))
     })
 }
 
-// Calcular el hash de dependencias de efectos
-fn hash_dependencies(dependencies: &[PyObject]) -> u64 {
-    use std::collections::hash_map::DefaultHasher;
-    let mut hasher = DefaultHasher::new();
-
-    Python::with_gil(|py| {
-        for dep in dependencies {
-            // Llamar a `__hash__()` del objeto Python
-            let id = dep.call_method0(py, "__hash__").unwrap();
-            let id_value: isize = id.extract(py).unwrap();
-            id_value.hash(&mut hasher);
-        }
-    });
-
-    hasher.finish()
-}
-
-// Módulo de PyO3 para exponer hooks
+/// Add hooks to PyO3 module
 #[pymodule]
-fn hooks(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_class::<SetState>()?;
-    m.add_class::<Dispatch>()?;
-    m.add_function(wrap_pyfunction!(use_state, m)?)?;
-    m.add_function(wrap_pyfunction!(use_lazy_state, m)?)?;
-    m.add_function(wrap_pyfunction!(use_context, m)?)?;
-    m.add_function(wrap_pyfunction!(use_reducer, m)?)?;
-    m.add_function(wrap_pyfunction!(use_effect_with_deps, m)?)?;
-    Ok(())
-}
-
-fn add_hooks_to_module(m: &PyModule) -> PyResult<()> {
+fn hooks(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SetState>()?;
     m.add_class::<Dispatch>()?;
     m.add_function(wrap_pyfunction!(use_state, m)?)?;

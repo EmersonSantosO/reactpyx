@@ -1,19 +1,57 @@
-use minifier::js::minify;
-use pyo3::prelude::*;
+use std::io::{self};
+use swc_core::common::{FileName, SourceMap};
+use swc_core::ecma::ast::EsVersion;
+use swc_core::ecma::codegen::text_writer::JsWriter;
+use swc_core::ecma::codegen::Emitter;
+use swc_core::ecma::parser::{lexer::Lexer, EsSyntax, Parser, StringInput, Syntax};
 
-#[pyfunction]
-pub fn minify_js_code(js_code: &str, sourcemaps: bool) -> PyResult<(String, Option<String>)> {
-    let minified = minify(js_code).to_string();
-    let sourcemap = if sourcemaps {
-        Some(generate_sourcemap(js_code))
-    } else {
-        None
+/// Minify JavaScript code using `swc_core`.
+pub fn minify_js_code(js: &str) -> Result<String, io::Error> {
+    let cm = SourceMap::default();
+
+    // Create a source file for the compiler
+    let fm = cm.new_source_file(FileName::Custom("input.js".into()), js.into());
+
+    // Use a lexer to parse JavaScript
+    let lexer = Lexer::new(
+        Syntax::Es(EsSyntax::default()), // Set the syntax for ES
+        EsVersion::Es2021,               // Target ES version
+        StringInput::from(&*fm),         // Input source
+        None,
+    );
+
+    // Parse the JavaScript code into an AST
+    let mut parser = Parser::new_from(lexer);
+    let module = parser.parse_module().map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("Error parsing JS: {:?}", e),
+        )
+    })?;
+
+    // Emit and minify the JavaScript code
+    let mut buf = vec![];
+    let writer = Box::new(JsWriter::new(cm.clone(), "\n", &mut buf, None));
+    let mut emitter = Emitter {
+        cfg: Default::default(),
+        cm,
+        comments: None,
+        wr: writer,
     };
-    Ok((minified, sourcemap))
-}
 
-fn generate_sourcemap(_code: &str) -> String {
-    // Implementa la generación de sourcemaps aquí.
-    // Puedes usar una biblioteca externa o tu propia lógica.
-    String::from("sourcemap_placeholder")
+    // Emit the code as JavaScript from the AST
+    emitter.emit_module(&module).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("Error emitting JS: {:?}", e),
+        )
+    })?;
+
+    // Convert the buffer to a UTF-8 string and return it
+    String::from_utf8(buf).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("Invalid UTF-8 output: {}", e),
+        )
+    })
 }

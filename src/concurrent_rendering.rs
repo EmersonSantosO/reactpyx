@@ -1,8 +1,6 @@
 use pyo3::prelude::*;
-use pyo3_asyncio_0_21::tokio::future_into_py;
-
 use std::sync::Arc;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 
 #[pyclass]
 pub struct ConcurrentRenderer {
@@ -14,15 +12,18 @@ impl ConcurrentRenderer {
     #[new]
     pub fn new() -> Self {
         ConcurrentRenderer {
-            is_complete: Arc::new(Mutex::new(false)),
+            is_complete: Arc::new(RwLock::new(false)),
         }
     }
 
-    pub fn is_render_complete<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let is_complete = Arc::clone(&self.is_complete);
-        future_into_py(py, async move {
-            let is_complete = is_complete.lock().await;
-            Ok(*is_complete)
-        })
+    pub async fn is_render_complete(&self) -> PyResult<bool> {
+        let is_complete = self.is_complete.read().await;
+        Ok(*is_complete)
+    }
+
+    pub async fn set_render_complete(&self, complete: bool) -> PyResult<()> {
+        let mut is_complete = self.is_complete.write().await;
+        *is_complete = complete;
+        Ok(())
     }
 }

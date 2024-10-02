@@ -1,11 +1,11 @@
 [build-system]
-requires = ["maturin>=0.14,<0.16"]
+requires = ["maturin>=0.14,<0.16", "setuptools>=65.0", "wheel"]
 build-backend = "maturin"
 
 [project]
 name = "core_reactpyx"
-version = "0.5.0"
-description = "Núcleo del framework ReactPyx, proporciona funcionalidades esenciales."
+version = "0.5.1"
+description = "Núcleo del framework ReactPyx que proporciona funcionalidades esenciales."
 authors = [{ name = "Tu Nombre", email = "tu.email@example.com" }]
 license = "MIT"
 readme = "README.md"
@@ -15,3 +15,13 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 python = ">=3.8"
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "black", "mypy", "flake8"]
+
+[tool.maturin]
+strip = true
+cargo-extra-args = ["--release"]
+
+[project.scripts]
+reactpyx = "core_reactpyx.cli:run_cli_py"

@@ -1,11 +1,13 @@
 use pyo3::prelude::*;
-use pyo3_asyncio_0_21::tokio::future_into_py;
-use std::sync::Arc;
-use tokio::sync::{Mutex, RwLock};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use tokio::time::{sleep, Duration};
 
 #[pyclass]
 pub struct AsyncTaskManager {
-    is_complete: Arc<RwLock<bool>>,
+    is_complete: Arc<AtomicBool>, // AtomicBool for state
 }
 
 #[pymethods]
@@ -13,29 +15,24 @@ impl AsyncTaskManager {
     #[new]
     pub fn new() -> Self {
         Self {
-            is_complete: Arc::new(Mutex::new(false)),
+            is_complete: Arc::new(AtomicBool::new(false)),
         }
     }
 
-    pub fn run_async_task<'a>(
-        &self,
-        py: Python<'a>,
-        delay_secs: u64,
-    ) -> PyResult<Bound<'a, PyAny>> {
+    /// Execute an async task with a specified delay.
+    #[allow(dead_code)]
+    pub fn run_async_task(&self, delay_secs: u64) -> PyResult<()> {
         let is_complete_clone = Arc::clone(&self.is_complete);
-        future_into_py(py, async move {
-            tokio::time::sleep(tokio::time::Duration::from_secs(delay_secs)).await;
-            let mut is_complete = is_complete_clone.lock().await; // Usa `await` para `tokio::sync::Mutex`
-            *is_complete = true;
-            Ok(())
-        })
+        tokio::spawn(async move {
+            sleep(Duration::from_secs(delay_secs)).await;
+            is_complete_clone.store(true, Ordering::SeqCst); // Use sequential consistency for safety
+        });
+
+        Ok(())
     }
 
-    pub fn is_task_complete<'a>(&self, py: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
-        let is_complete_clone = Arc::clone(&self.is_complete);
-        future_into_py(py, async move {
-            let is_complete = is_complete_clone.lock().await; // Usa `await` para `tokio::sync::Mutex`
-            Ok(*is_complete)
-        })
+    /// Check if the async task has completed.
+    pub fn is_task_complete(&self) -> bool {
+        self.is_complete.load(Ordering::SeqCst)
     }
 }

@@ -1,42 +1,34 @@
-use crate::compiler::sanitize_html;
-use pyo3::prelude::*;
+use html5ever::tendril::TendrilSink;
+use html5ever::{parse_document, serialize};
+use markup5ever_rcdom::RcDom;
+use std::io::{self, BufReader};
 
-#[pyfunction]
-pub fn minify_html_code(html_code: &str) -> PyResult<String> {
-    // Sanear el HTML usando html5ever
-    let sanitized_html = sanitize_html(html_code)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
+/// Minify HTML code using `html5ever`.
+pub fn minify_html_code(html: &str) -> Result<String, io::Error> {
+    // Parse HTML into a DOM structure
+    let dom = parse_document(RcDom::default(), Default::default())
+        .from_utf8()
+        .read_from(&mut BufReader::new(html.as_bytes()))
+        .map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Error parsing HTML: {:?}", e),
+            )
+        })?;
 
-    // Minificar el HTML (puedes usar la lógica de minificación original o una biblioteca dedicada)
-    let minified = minify_code(&sanitized_html);
+    // Serialize DOM back to HTML with minification
+    let mut minified_html = Vec::new();
+    serialize(&mut minified_html, &dom.document, Default::default()).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("Error serializing HTML: {:?}", e),
+        )
+    })?;
 
-    Ok(minified)
-}
-
-fn minify_code(code: &str) -> String {
-    let mut minified = String::new();
-    let mut inside_tag = false;
-    let mut prev_char = '\0';
-
-    for c in code.chars() {
-        match c {
-            '<' => {
-                inside_tag = true;
-                minified.push(c);
-            }
-            '>' => {
-                inside_tag = false;
-                minified.push(c);
-            }
-            ' ' | '\n' | '\t' if !inside_tag => {
-                if prev_char != ' ' && prev_char != '\n' && prev_char != '\t' {
-                    minified.push(' ');
-                }
-            }
-            _ => minified.push(c),
-        }
-        prev_char = c;
-    }
-
-    minified.trim().to_string()
+    String::from_utf8(minified_html).map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("Invalid UTF-8 output: {}", e),
+        )
+    })
 }
