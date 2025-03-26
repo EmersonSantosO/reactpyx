@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/assets/logo.png" alt="ReactPyx Logo" width="200" height="200">
+
   <h1>ReactPyx</h1>
   <p>Un framework moderno que combina la potencia de React con Python y Rust</p>
   
