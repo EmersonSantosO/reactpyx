@@ -1,4 +1,4 @@
-# Guía de Contribución
+# Guía de Contribución para ReactPyx
 
 <div align="center">
   <img src="docs/assets/contributing.png" alt="Contribución" width="300">
@@ -39,13 +39,9 @@ pip install -e .[dev]
 3. **Compilar los componentes Rust**
 
 ```bash
-cargo build --release
-```
-
-4. **Instalar herramientas de desarrollo**
-
-```bash
-pip install -r requirements-dev.txt
+maturin develop
 ```
 
 ## Estructura del proyecto
+
+La estructura del proyecto es la siguiente:

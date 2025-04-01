@@ -1,0 +1,9 @@
+# Este archivo define los propietarios de código que deben revisar cambios
+# Formato: patrón_de_archivos @usuario_o_equipo
+
+# Propietario de todo el código por defecto
+* @tu_usuario_de_github
+
+# Directorios específicos
+/src/compiler/ @tu_usuario_de_github
+/src/hooks/ @tu_usuario_de_github
