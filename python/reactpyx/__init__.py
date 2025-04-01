@@ -15,7 +15,7 @@ from .hooks import (
 )
 
 # Importar las clases principales del framework
-from reactpyx._core import (  # Cambiado de "from core_reactpyx import"
+from reactpyx._core import (  
     VNode,
     Patch,
     EventHandler,

@@ -24,8 +24,8 @@ Este proyecto se adhiere a un [Código de Conducta](CODE_OF_CONDUCT.md). Al part
 1. **Clonar el repositorio**
 
 ```bash
-git clone https://github.com/tu-usuario/core_reactpyx.git
-cd core_reactpyx
+git clone https://github.com/tu-usuario/reactpyx.git
+cd reactpyx
 ```
 
 2. **Configurar entorno virtual de Python**
