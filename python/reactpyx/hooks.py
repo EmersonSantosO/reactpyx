@@ -3,7 +3,7 @@ Módulo de hooks para ReactPyx.
 Este módulo exporta los hooks disponibles en la versión de Rust
 """
 
-from core_reactpyx import (
+from reactpyx._core import (  # Cambiado de "from core_reactpyx import"
     use_state, 
     use_effect, 
     use_effect_with_deps, 
