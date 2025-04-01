@@ -8,67 +8,69 @@ name = "core_reactpyx"
 crate-type = ["cdylib"]
 
 [dependencies]
-# Asynchronous programming and concurrency
-tokio = { version = "1.40", features = ["full", "fs"] }
-tokio-stream = { version = "0.1.16", features = ["fs"] }
-tokio-util = "0.7.12"
+# Programación asíncrona y concurrencia
+tokio = { version = "1.35.1", features = ["full", "fs"] }
+tokio-stream = { version = "0.1.15", features = ["fs"] }
+tokio-util = "0.7.10"
 
-# SWC core for syntax parsing and code generation
-
-swc_core = { version = "0.106.0", features = [
+# SWC core para análisis sintáctico y generación de código
+swc_core = { version = "0.90.8", features = [
     "ecma_parser",
     "ecma_codegen",
     "ecma_ast",
     "__common",
 ] }
 
+# Formato de código y análisis de árbol sintáctico
+prettyplease = "0.2.16"
+tree-sitter = "0.20.10"
+tree-sitter-python = "0.20.4"
 
-# Code formatting and syntax tree parsing
-prettyplease = "0.2.22"
-tree-sitter = "0.23.0"
-tree-sitter-python = "0.23.2"
+# Serialización y deserialización
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.108"
 
-# Serialization and deserialization
-serde = { version = "1.0.210", features = ["derive"] }
-serde_json = "1.0.128"
+# Minificación y procesamiento CSS
+lightningcss = "1.0.0-alpha.50"
+minifier = "0.3.0"
 
-# Minification and CSS processing
-lightningcss = "1.0.0-alpha.59"
-minifier = "0.3.1"
+# Herramientas de procesamiento concurrente e hilos
+rayon = "1.8.0"
+futures = "0.3.29"
 
-# Concurrent processing and threading tools
-rayon = "1.10.0"
-futures = "0.3.30"
+# Manejo de errores y utilidades
+anyhow = "1.0.75"
+thiserror = "1.0.50"
+log = "0.4.20"
+env_logger = "0.10.1"
 
-# Error handling and utilities
-anyhow = "1.0.89"
-thiserror = "1.0.64"
-log = "0.4.22"
-env_logger = "0.11.5"
-
-# File system operations and caching
+# Operaciones de sistema de archivos y caché
 fs_extra = "1.3.0"
-parking_lot = "0.12.3"
-dashmap = "6.1.0"
+parking_lot = "0.12.1"
+dashmap = "5.5.3"
 
-# Command-line interface tools
-clap = "4.5.18"
-colored = "2.1.0"
-indicatif = "0.17.8"
+# Herramientas para interfaz de línea de comandos
+clap = "4.4.11"
+colored = "2.0.4"
+indicatif = "0.17.7"
 
-# Other utilities and support libraries
-html5ever = "0.27.0"
-markup5ever_rcdom = "0.3.0"
-brotli = "6.0.0"
+# Otras utilidades y bibliotecas de soporte
+html5ever = "0.26.0"
+markup5ever_rcdom = "0.2.0"
+brotli = "3.4.0"
 
-pyo3 = { version = "0.22.3", features = ["macros", "extension-module"] }
+# Actualizamos PyO3 para soporte de Python 3.13
+pyo3 = { version = "0.21.0", features = [
+    "macros",
+    "extension-module",
+    "abi3-py38",
+] }
 
-
-# Caching library (replacing `ttl_cache`)
-cached = "0.53.1"
-syn = "2.0.79"
-regex = "1.11.0"
-once_cell = "1.20.1"
-clap_derive = "4.5.18"
+# Biblioteca de caché
+cached = "0.46.1"
+syn = "2.0.39"
+regex = "1.10.2"
+once_cell = "1.18.0"
+clap_derive = "4.4.7"
 notify = "6.1.1"
-blake3 = "1.5.4"
+blake3 = "1.5.0"

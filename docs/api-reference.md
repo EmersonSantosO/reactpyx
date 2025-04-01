@@ -2,6 +2,7 @@
 
 <div align="center">
   <img src="assets/api-reference.png" alt="API Reference" width="300">
+  <p><strong>Compatible con Python 3.8 hasta 3.13</strong></p>
 </div>
 
 Esta documentación detalla todas las APIs disponibles en ReactPyx.
@@ -65,13 +66,21 @@ value, set_state = use_state(component_id: str, key: str, initial_value)
 
 Crea un estado local para el componente.
 
+### use_effect
+
+```python
+use_effect(effect_function)
+```
+
+Ejecuta un efecto secundario en cada renderizado (sin dependencias).
+
 ### use_effect_with_deps
 
 ```python
 use_effect_with_deps(effect_id: str, effect_function, dependencies: list)
 ```
 
-Ejecuta efectos secundarios cuando cambian las dependencias.
+Ejecuta efectos secundarios solo cuando cambian las dependencias especificadas.
 
 ### use_context
 

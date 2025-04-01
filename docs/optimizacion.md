@@ -25,6 +25,44 @@ def ComponenteCostoso(props):
     return <div>...</div>
 ```
 
+### Uso correcto de Hooks
+
+```python
+def Componente():
+    # ❌ MAL: Lógica costosa en cada renderizado
+    datos_procesados = procesar_datos(props.datos)
+
+    # ✅ BIEN: Solo se ejecuta cuando cambian los datos
+    use_effect_with_deps(
+        "procesar",
+        lambda deps: set_procesados(procesar_datos(props.datos)),
+        [props.datos]
+    )
+
+    # ✅ BIEN: Uso del hook use_effect para registros sin dependencias
+    use_effect(lambda: console_log("Renderizado completado"))
+```
+
+### Optimizar re-renderizados
+
+```python
+def ComponenteOptimizado(props):
+    # Uso del estado local para memorizar datos costosos
+    memo, set_memo = use_state("memo", None)
+
+    # Calcular resultado solo cuando cambia props.datos
+    use_effect_with_deps(
+        "calcular-memo",
+        lambda deps: set_memo(calculo_costoso(props.datos)) if props.datos != None else None,
+        [props.datos]
+    )
+
+    # Registrar cada renderizado
+    use_effect(lambda: print("Componente renderizado"))
+
+    return <div>{memo}</div>
+```
+
 ### Evitar cálculos innecesarios
 
 ```python

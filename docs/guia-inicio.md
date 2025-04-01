@@ -11,6 +11,7 @@
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Creando componentes](#creando-componentes)
 - [Hooks disponibles](#hooks-disponibles)
+- [Ejemplo completo](#ejemplo-completo)
 - [Compilación](#compilación)
 
 ## Instalación
@@ -97,7 +98,10 @@ ReactPyx proporciona hooks similares a React:
 # Estado
 valor, set_valor = use_state("clave", valor_inicial)
 
-# Efecto
+# Efecto (se ejecuta en cada renderizado)
+use_effect(lambda: print("Componente renderizado"))
+
+# Efecto con dependencias (se ejecuta solo cuando cambian las dependencias)
 use_effect_with_deps("efecto-id", funcion_efecto, [dependencias])
 
 # Contexto
@@ -108,6 +112,36 @@ estado, dispatch = use_reducer("id", "clave", reducer_fn, estado_inicial)
 
 # Estado perezoso
 valor = use_lazy_state("id", "clave", valor_inicial_opcional)
+```
+
+## Ejemplo completo
+
+```python
+# src/components/Contador.pyx
+from reactpyx import use_state, use_effect, use_effect_with_deps
+
+def Contador():
+    count, set_count = use_state("contador", 0)
+    message, set_message = use_state("mensaje", "")
+
+    # Efecto que se ejecuta en cada renderizado
+    use_effect(lambda: print("Contador renderizado"))
+
+    # Efecto que se ejecuta solo cuando cambia count
+    use_effect_with_deps("contador-cambio",
+                         lambda deps: set_message(f"El contador cambió a: {count}"),
+                         [count])
+
+    def incrementar():
+        set_count(count + 1)
+
+    return (
+        <div className="contador">
+            <h2>Contador: {count}</h2>
+            {message and <p>{message}</p>}
+            <button onClick={incrementar}>Incrementar</button>
+        </div>
+    )
 ```
 
 ## Compilación

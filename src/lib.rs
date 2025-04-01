@@ -48,7 +48,7 @@ fn core_reactpyx(py: Python, m: &PyModule) -> PyResult<()> {
 
 /// Agregar hooks al módulo PyO3
 fn add_hooks_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
-    use crate::hooks::{use_context, use_effect_with_deps, use_lazy_state, use_reducer, use_state};
+    use crate::hooks::{use_context, use_effect, use_effect_with_deps, use_lazy_state, use_reducer, use_state};
 
     m.add_class::<SetState>()?;
     m.add_class::<Dispatch>()?;
@@ -57,6 +57,7 @@ fn add_hooks_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(use_context, m)?)?;
     m.add_function(wrap_pyfunction!(use_reducer, m)?)?;
     m.add_function(wrap_pyfunction!(use_effect_with_deps, m)?)?;
+    m.add_function(wrap_pyfunction!(use_effect, m)?)?; // Añadir el nuevo hook simple
     Ok(())
 }
 

@@ -42,7 +42,7 @@ register_plugin("mi-plugin", mi_plugin_function)
 run_plugin("mi-plugin")
 ```
 
-## SSR (Server-Side Rendering)
+## SSR (Server-Side Rendering
 
 ReactPyx soporta renderizado en el servidor:
 
@@ -83,7 +83,15 @@ EventHandler().trigger_event("invalidate_cache", ["MiComponente"], py)
 def UsuarioContenedor(props):
     datos, set_datos = use_state("usuario", {})
 
-    use_effect_with_deps("cargar-usuario", lambda: cargar_usuario(props.id), [props.id])
+    # Efecto que se ejecuta cuando cambia el ID
+    use_effect_with_deps(
+        "cargar-usuario",
+        lambda deps: cargar_datos_usuario(props.id, set_datos),
+        [props.id]
+    )
+
+    # Efecto de registro que se ejecuta en cada renderizado
+    use_effect(lambda: print(f"Renderizando usuario: {props.id}"))
 
     return <UsuarioPresentacion datos={datos} />
 

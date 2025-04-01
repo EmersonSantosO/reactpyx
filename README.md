@@ -7,7 +7,7 @@
     <img src="https://img.shields.io/badge/versión-0.1.0-blue" alt="Versión">
     <img src="https://img.shields.io/badge/estado-alpha-orange" alt="Estado">
     <img src="https://img.shields.io/badge/rust-1.75+-orange" alt="Rust">
-    <img src="https://img.shields.io/badge/python-3.8+-blue" alt="Python">
+    <img src="https://img.shields.io/badge/python-3.8_|_3.9_|_3.10_|_3.11_|_3.12_|_3.13-blue" alt="Python">
   </div>
 </div>
 

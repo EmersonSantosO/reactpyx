@@ -262,7 +262,7 @@ async fn detect_components_in_file(file_path: &Path) -> Result<Vec<String>> {
 pub async fn transform_pyx_to_python(pyx_code: &str) -> Result<String> {
     // Procesa la transformación de `.pyx` a Python
     let pyx_code_cloned = pyx_code.to_string();
-    let python_code = spawn_blocking(move || {
+    let python_code = tokio::task::spawn_blocking(move || {
         let syntax_tree =
             syn::parse_file(&pyx_code_cloned).with_context(|| "Error al analizar código PyX")?;
         Ok::<String, anyhow::Error>(prettyplease::unparse(&syntax_tree))

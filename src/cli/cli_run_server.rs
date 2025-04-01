@@ -93,7 +93,7 @@ async fn handle_file_change(path: &Path) -> Result<()> {
     
     println!("{} {}", "Recompilando".yellow(), file_path);
 
-    match compiler::compile_pyx_file_to_python(path, "config.json", "python").await {
+    match crate::compiler::compile_pyx_file_to_python(path, "config.json", "python").await {
         Ok(_) => println!("{} {}", "✓".green(), "Compilación exitosa"),
         Err(e) => println!("{} {}: {}", "✗".red(), "Error al compilar".red(), e),
     }
