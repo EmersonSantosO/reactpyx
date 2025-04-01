@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyModule;
 use std::collections::HashMap;
 
-/// Representation of a virtual node in the DOM
+/// Representación de un nodo virtual en el DOM
 #[pyclass]
 #[derive(Debug)]
 pub struct VNode {
@@ -42,18 +42,18 @@ impl VNode {
         }
     }
 
-    /// Renders the virtual node as an HTML string
+    /// Renderiza el nodo virtual como una cadena HTML
     pub fn render(&self, py: Python) -> PyResult<String> {
         let mut html = format!("<{}", self.tag);
 
-        // Add attributes
+        // Añade atributos
         for (key, value) in &self.props {
             let value_str: String = value.extract(py)?;
             html.push_str(&format!(" {}=\"{}\"", key, value_str));
         }
         html.push('>');
 
-        // Add children
+        // Añade hijos
         for child in &self.children {
             let child_node = child.borrow(py);
             let child_html = child_node.render(py)?;
@@ -67,7 +67,7 @@ impl VNode {
     }
 }
 
-/// Types of modifications (patches) for virtual nodes.
+/// Tipos de modificaciones (parches) para nodos virtuales.
 #[derive(Debug)]
 pub enum Patch {
     AddProp { key: String, value: PyObject },
@@ -79,7 +79,7 @@ pub enum Patch {
 }
 
 impl Patch {
-    /// Applies a set of "patches" to the virtual node.
+    /// Aplica un conjunto de "parches" al nodo virtual.
     pub fn apply(&self, node: &mut VNode, py: Python) -> PyResult<()> {
         match self {
             Patch::AddProp { key, value } => {
@@ -105,11 +105,11 @@ impl Patch {
     }
 }
 
-/// Calculates the differences between two virtual nodes.
+/// Calcula las diferencias entre dos nodos virtuales.
 pub fn diff_nodes(py: Python, old_node: &VNode, new_node: &VNode) -> Vec<Patch> {
     let mut patches = Vec::new();
 
-    // Compare props
+    // Compara propiedades
     for (key, new_value) in &new_node.props {
         match old_node.props.get(key) {
             Some(old_value) if !old_value.compare(new_value).unwrap_or(false) => {
@@ -128,14 +128,14 @@ pub fn diff_nodes(py: Python, old_node: &VNode, new_node: &VNode) -> Vec<Patch> 
         }
     }
 
-    // Detect removed props
+    // Detecta propiedades eliminadas
     for key in old_node.props.keys() {
         if !new_node.props.contains_key(key) {
             patches.push(Patch::RemoveProp { key: key.clone() });
         }
     }
 
-    // Compare children (simplification)
+    // Compara hijos (simplificación)
     let min_children_len = old_node.children.len().min(new_node.children.len());
     for index in 0..min_children_len {
         let old_child = old_node.children[index].borrow(py);
@@ -149,7 +149,7 @@ pub fn diff_nodes(py: Python, old_node: &VNode, new_node: &VNode) -> Vec<Patch> 
         }
     }
 
-    // Add new children
+    // Añade nuevos hijos
     if new_node.children.len() > old_node.children.len() {
         for index in old_node.children.len()..new_node.children.len() {
             patches.push(Patch::AddChild {
@@ -158,7 +158,7 @@ pub fn diff_nodes(py: Python, old_node: &VNode, new_node: &VNode) -> Vec<Patch> 
         }
     }
 
-    // Remove old children
+    // Elimina hijos antiguos
     if old_node.children.len() > new_node.children.len() {
         for index in (new_node.children.len()..old_node.children.len()).rev() {
             patches.push(Patch::RemoveChild { index });

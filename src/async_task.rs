@@ -7,7 +7,7 @@ use tokio::time::{sleep, Duration};
 
 #[pyclass]
 pub struct AsyncTaskManager {
-    is_complete: Arc<AtomicBool>, // AtomicBool for state
+    is_complete: Arc<AtomicBool>, // AtomicBool para estado
 }
 
 #[pymethods]
@@ -19,19 +19,19 @@ impl AsyncTaskManager {
         }
     }
 
-    /// Execute an async task with a specified delay.
+    /// Ejecuta una tarea asíncrona con un retardo especificado.
     #[allow(dead_code)]
     pub fn run_async_task(&self, delay_secs: u64) -> PyResult<()> {
         let is_complete_clone = Arc::clone(&self.is_complete);
         tokio::spawn(async move {
             sleep(Duration::from_secs(delay_secs)).await;
-            is_complete_clone.store(true, Ordering::SeqCst); // Use sequential consistency for safety
+            is_complete_clone.store(true, Ordering::SeqCst); // Usa consistencia secuencial por seguridad
         });
 
         Ok(())
     }
 
-    /// Check if the async task has completed.
+    /// Comprueba si la tarea asíncrona ha completado.
     pub fn is_task_complete(&self) -> bool {
         self.is_complete.load(Ordering::SeqCst)
     }

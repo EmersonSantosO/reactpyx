@@ -8,7 +8,6 @@ from components.About import About
 def App():
     user, setUser = use_state("user", "ReactPyx Developer")
     
-    # Mejor manejo del efecto
     use_effect(lambda: print(f"User: {user}") if user else None, [user])
     
     return (

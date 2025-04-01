@@ -20,7 +20,7 @@ impl JSXPrecompiler {
         }
     }
 
-    /// Precompilar el archivo JSX y actualizar el caché si es necesario
+    /// Precompila el archivo JSX y actualiza el caché si es necesario
     pub fn precompile_jsx(&self, file_path: &str) -> PyResult<String> {
         let path = Path::new(file_path);
         if !path.exists() {

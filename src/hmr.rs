@@ -4,36 +4,36 @@ use std::path::Path;
 use tokio::sync::mpsc;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 
-/// Start a watcher for changes in component files
+/// Iniciar un watcher para cambios en archivos de componentes
 pub async fn start_hmr_watcher(
     project_root: &str,
     tx: mpsc::Sender<String>,
-    config_tx: mpsc::Sender<String>, // Send paths for configuration changes
+    config_tx: mpsc::Sender<String>, // Envía rutas para cambios de configuración
 ) -> Result<()> {
-    // Channel for file system change notifications
+    // Canal para notificaciones de cambios en el sistema de archivos
     let (notify_tx, notify_rx) = std::sync::mpsc::channel();
     let mut watcher: RecommendedWatcher =
         Watcher::new(notify_tx, std::time::Duration::from_secs(1))?;
 
-    // Directories and files to watch
+    // Directorios y archivos a observar
     let components_path = Path::new(project_root).join("src").join("components");
     let config_path = Path::new(project_root).join("pyx.config.json");
 
-    // Watch component directories and config file
+    // Observar directorios de componentes y archivo de configuración
     watcher.watch(&components_path, RecursiveMode::Recursive)?;
     watcher.watch(&config_path, RecursiveMode::NonRecursive)?;
 
-    // Convert std_mpsc::Receiver to a Tokio stream
+    // Convertir std_mpsc::Receiver a un stream de Tokio
     let (stream_tx, mut stream_rx) = mpsc::channel(100);
     tokio::spawn(async move {
         while let Ok(event) = notify_rx.recv() {
             if let Err(_) = stream_tx.send(event).await {
-                break; // Stop watching if channel is closed
+                break; // Detener observación si el canal está cerrado
             }
         }
     });
 
-    // Process asynchronous events using Tokio Stream
+    // Procesar eventos asíncronos usando Tokio Stream
     let mut stream = ReceiverStream::new(stream_rx);
 
     while let Some(event) = stream.next().await {
@@ -45,13 +45,13 @@ pub async fn start_hmr_watcher(
             } => {
                 for path in paths {
                     if let Some(ext) = path.extension() {
-                        // Process `.pyx` files
+                        // Procesar archivos `.pyx`
                         if ext == "pyx" {
                             if let Some(file_path) = path.to_str() {
                                 tx.send(file_path.to_string()).await.unwrap_or_default();
                             }
                         } else if path.ends_with("pyx.config.json") {
-                            // Process changes in the config file
+                            // Procesar cambios en el archivo de configuración
                             if let Some(file_path) = path.to_str() {
                                 config_tx
                                     .send(file_path.to_string())

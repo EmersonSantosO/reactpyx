@@ -6,12 +6,12 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-// Global state managed by components
+// Estado global gestionado por componentes
 static GLOBAL_STATE: Lazy<DashMap<String, DashMap<String, Arc<Mutex<PyObject>>>>> =
     Lazy::new(DashMap::new);
 
 thread_local! {
-    // Cache for effect dependencies, organized by effect ID
+    // Caché para dependencias de efectos, organizado por ID de efecto
     static LAST_EFFECT_DEPS: RefCell<HashMap<String, u64>> = RefCell::new(HashMap::new());
 }
 
@@ -29,7 +29,7 @@ impl SetState {
         SetState { component_id, key }
     }
 
-    /// Method to update the component state
+    /// Método para actualizar el estado del componente
     fn set(&self, py: Python<'_>, new_value: PyObject) -> PyResult<()> {
         let component_state = GLOBAL_STATE
             .entry(self.component_id.clone())
@@ -41,7 +41,7 @@ impl SetState {
 
         let mut state = lock.lock().map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                "Failed to lock state: {:?}",
+                "Error al bloquear estado: {:?}",
                 e
             ))
         })?;
@@ -68,7 +68,7 @@ impl Dispatch {
         }
     }
 
-    /// Method to dispatch an action and update the state
+    /// Método para despachar una acción y actualizar el estado
     fn dispatch(&self, py: Python<'_>, action: PyObject) -> PyResult<()> {
         let component_state = GLOBAL_STATE
             .entry(self.component_id.clone())
@@ -80,7 +80,7 @@ impl Dispatch {
 
         let mut state = lock.lock().map_err(|e| {
             PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                "Failed to lock state: {:?}",
+                "Error al bloquear estado: {:?}",
                 e
             ))
         })?;
@@ -92,7 +92,7 @@ impl Dispatch {
     }
 }
 
-/// Hook for managing component state
+/// Hook para gestionar el estado del componente
 #[pyfunction]
 pub fn use_state(
     component_id: &str,
@@ -108,22 +108,32 @@ pub fn use_state(
             .entry(key.to_string())
             .or_insert_with(|| Arc::new(Mutex::new(initial_value.clone_ref(py))));
 
-        let state = lock
-            .lock()
-            .map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Failed to lock state: {:?}",
-                    e
-                ))
-            })?
-            .clone_ref(py);
+        // Uso de try_lock + espera para evitar deadlocks permanentes
+        let mut retry_count = 0;
+        let max_retries = 5;
+
+        let state = loop {
+            match lock.try_lock() {
+                Ok(guard) => break guard.clone_ref(py),
+                Err(_) => {
+                    retry_count += 1;
+                    if retry_count >= max_retries {
+                        return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+                            "Error al acceder al estado: máximo de reintentos alcanzado",
+                        ));
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+            }
+        };
+
         let set_state: Py<SetState> =
             Py::new(py, SetState::new(component_id.to_string(), key.to_string()))?;
         Ok((state, set_state))
     })
 }
 
-/// Lazy initialization of state
+/// Inicialización perezosa del estado
 #[pyfunction(signature = (component_id, key, initial_value=None))]
 pub fn use_lazy_state(
     component_id: &str,
@@ -147,7 +157,7 @@ pub fn use_lazy_state(
             .lock()
             .map_err(|e| {
                 PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Failed to lock state: {:?}",
+                    "Error al bloquear estado: {:?}",
                     e
                 ))
             })?
@@ -156,7 +166,7 @@ pub fn use_lazy_state(
     })
 }
 
-/// Access shared context within a component
+/// Acceso al contexto compartido dentro de un componente
 #[pyfunction]
 pub fn use_context(component_id: &str, key: &str) -> PyResult<Option<PyObject>> {
     Python::with_gil(|py| {
@@ -169,7 +179,7 @@ pub fn use_context(component_id: &str, key: &str) -> PyResult<Option<PyObject>> 
     })
 }
 
-/// Hook for effects with dependencies
+/// Hook para efectos con dependencias
 #[pyfunction]
 pub fn use_effect_with_deps(
     effect_id: &str,
@@ -200,7 +210,16 @@ pub fn use_effect_with_deps(
     })
 }
 
-/// Calculate hash for dependencies
+/// Hook simplificado para efectos sin dependencias (ejecuta siempre)
+#[pyfunction]
+pub fn use_effect(effect_function: Py<PyAny>) -> PyResult<()> {
+    Python::with_gil(|py| {
+        effect_function.call0(py)?;
+        Ok(())
+    })
+}
+
+/// Calcular hash para dependencias
 fn hash_dependencies(dependencies: &[PyObject], py: Python<'_>) -> PyResult<u64> {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
@@ -209,10 +228,12 @@ fn hash_dependencies(dependencies: &[PyObject], py: Python<'_>) -> PyResult<u64>
 
     for dep in dependencies {
         let id = dep.call_method0(py, "__hash__").map_err(|_| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>("Failed to hash dependency")
+            PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "Error al calcular el hash de la dependencia",
+            )
         })?;
         let id_value: isize = id.extract(py).map_err(|_| {
-            PyErr::new::<pyo3::exceptions::PyValueError, _>("Failed to extract hash value")
+            PyErr::new::<pyo3::exceptions::PyValueError, _>("Error al extraer valor del hash")
         })?;
         id_value.hash(&mut hasher);
     }
@@ -220,7 +241,7 @@ fn hash_dependencies(dependencies: &[PyObject], py: Python<'_>) -> PyResult<u64>
     Ok(hasher.finish())
 }
 
-/// Hook for handling state with a reducer
+/// Hook para manejar el estado con un reducer
 #[pyfunction]
 pub fn use_reducer(
     component_id: &str,
@@ -241,7 +262,7 @@ pub fn use_reducer(
             .lock()
             .map_err(|e| {
                 PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!(
-                    "Failed to lock state: {:?}",
+                    "Error al bloquear estado: {:?}",
                     e
                 ))
             })?
@@ -254,7 +275,7 @@ pub fn use_reducer(
     })
 }
 
-/// Add hooks to PyO3 module
+/// Agregar hooks al módulo PyO3
 #[pymodule]
 fn hooks(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SetState>()?;
@@ -264,5 +285,6 @@ fn hooks(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(use_context, m)?)?;
     m.add_function(wrap_pyfunction!(use_reducer, m)?)?;
     m.add_function(wrap_pyfunction!(use_effect_with_deps, m)?)?;
+    m.add_function(wrap_pyfunction!(use_effect, m)?)?; // Agregamos nuevo hook
     Ok(())
 }

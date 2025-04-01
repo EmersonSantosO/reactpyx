@@ -42,19 +42,16 @@ pub async fn build_project(output: &str, env: &str) -> Result<()> {
 
 async fn transform_styles_to_js() -> Result<()> {
     println!("Transformando estilos a JavaScript...");
-    // Implementar lógica para transformar estilos a JavaScript
     Ok(())
 }
 
 async fn build_development_assets(output: &str) -> Result<()> {
     println!("Construyendo recursos para desarrollo...");
-    // Implementar la copia de archivos específicos para desarrollo
     Ok(())
 }
 
 async fn minify_and_optimize_assets(output: &str) -> Result<()> {
     println!("Minificando y optimizando recursos...");
-    // Implementar lógica real de minificación
     Ok(())
 }
 
