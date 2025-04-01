@@ -472,46 +472,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core_reactpyx"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "blake3",
- "brotli",
- "cached",
- "clap",
- "clap_derive",
- "colored",
- "dashmap",
- "env_logger",
- "fs_extra",
- "futures",
- "html5ever",
- "indicatif",
- "lightningcss",
- "log",
- "markup5ever_rcdom",
- "minifier",
- "notify",
- "once_cell",
- "parking_lot",
- "prettyplease",
- "pyo3",
- "rayon",
- "regex",
- "serde",
- "serde_json",
- "swc_core",
- "syn 2.0.79",
- "thiserror",
- "tokio",
- "tokio-stream",
- "tokio-util",
- "tree-sitter",
- "tree-sitter-python",
-]
-
-[[package]]
 name = "crossbeam-channel"
 version = "0.5.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1725,6 +1685,46 @@ checksum = "1465873a3dfdaa8ae7cb14b4383657caab0b3e8a0aa9ae8e04b044854c8dfce2"
 dependencies = [
  "crossbeam-deque",
  "crossbeam-utils",
+]
+
+[[package]]
+name = "reactpyx"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "blake3",
+ "brotli",
+ "cached",
+ "clap",
+ "clap_derive",
+ "colored",
+ "dashmap",
+ "env_logger",
+ "fs_extra",
+ "futures",
+ "html5ever",
+ "indicatif",
+ "lightningcss",
+ "log",
+ "markup5ever_rcdom",
+ "minifier",
+ "notify",
+ "once_cell",
+ "parking_lot",
+ "prettyplease",
+ "pyo3",
+ "rayon",
+ "regex",
+ "serde",
+ "serde_json",
+ "swc_core",
+ "syn 2.0.79",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "tree-sitter",
+ "tree-sitter-python",
 ]
 
 [[package]]

@@ -7,12 +7,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mi_proyecto"
 version = "0.1.0"
-description = "Proyecto creado con core_reactpyx"
+description = "Proyecto creado con reactpyx"
 authors = [{ name = "Tu Nombre", email = "tu.email@example.com" }]
 dependencies = [
     "reactpyx>=0.3.0",
     "fastapi>=0.115.0",
     "uvicorn>=0.30.6",
-    "core_reactpyx>=0.4.0",
+    "reactpyx>=0.4.0",
 ]
 python = ">=3.8"

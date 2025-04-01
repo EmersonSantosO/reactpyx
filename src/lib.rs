@@ -29,7 +29,7 @@ static LOGGER_INIT: Once = Once::new();
 
 /// Módulo principal de ReactPyx en Rust para Python
 #[pymodule]
-fn core_reactpyx(py: Python, m: &PyModule) -> PyResult<()> {
+fn reactpyx(py: Python, m: &PyModule) -> PyResult<()> {
     LOGGER_INIT.call_once(|| env_logger::init());
 
     m.add_class::<Patch>()?;
@@ -48,7 +48,9 @@ fn core_reactpyx(py: Python, m: &PyModule) -> PyResult<()> {
 
 /// Agregar hooks al módulo PyO3
 fn add_hooks_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
-    use crate::hooks::{use_context, use_effect, use_effect_with_deps, use_lazy_state, use_reducer, use_state};
+    use crate::hooks::{
+        use_context, use_effect, use_effect_with_deps, use_lazy_state, use_reducer, use_state,
+    };
 
     m.add_class::<SetState>()?;
     m.add_class::<Dispatch>()?;
@@ -129,7 +131,11 @@ fn validate_path(path: &str) -> PyResult<()> {
 
 /// Compilar todos los archivos `.pyx` en un proyecto
 #[pyfunction]
-fn compile_all_pyx_py(project_root: &str, config_path: &str, target_env: &str) -> PyResult<(Vec<String>, Vec<(String, String)>)> {
+fn compile_all_pyx_py(
+    project_root: &str,
+    config_path: &str,
+    target_env: &str,
+) -> PyResult<(Vec<String>, Vec<(String, String)>)> {
     validate_path(project_root)?;
     validate_path(config_path)?;
 
@@ -210,19 +216,22 @@ async fn compile_pyx_to_js(
 ) -> anyhow::Result<()> {
     // Implementación básica para que compile
     use std::path::Path;
-    
+
     let entry_path = Path::new(entry_file);
     if !entry_path.exists() {
-        return Err(anyhow::anyhow!("Archivo de entrada no existe: {}", entry_file));
+        return Err(anyhow::anyhow!(
+            "Archivo de entrada no existe: {}",
+            entry_file
+        ));
     }
-    
+
     let code = tokio::fs::read_to_string(entry_file).await?;
     let js_code = js_minifier::minify_js_code(&code)?;
-    
+
     let output_path = Path::new(output_dir).join("bundle.js");
     tokio::fs::create_dir_all(output_dir).await?;
     tokio::fs::write(&output_path, js_code).await?;
-    
+
     info!("Compilado exitosamente a JavaScript: {}", entry_file);
     Ok(())
 }
@@ -231,11 +240,13 @@ async fn compile_pyx_to_js(
 #[pyfunction]
 fn run_cli_py() -> PyResult<()> {
     use crate::cli::run_cli;
-    
+
     if let Err(e) = run_cli() {
         error!("Error en la CLI: {}", e);
-        return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()));
+        return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
+            e.to_string(),
+        ));
     }
-    
+
     Ok(())
 }
