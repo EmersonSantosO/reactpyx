@@ -22,12 +22,12 @@ static TOKIO_RUNTIME: Lazy<Runtime> = Lazy::new(|| {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
-        .expect("Error al crear el runtime de Tokio")
+        .expect("Error creating Tokio runtime")
 });
 
 static LOGGER_INIT: Once = Once::new();
 
-/// Módulo principal de ReactPyx en Rust para Python
+/// Main ReactPyx module in Rust for Python
 #[pymodule]
 fn reactpyx(py: Python, m: &PyModule) -> PyResult<()> {
     LOGGER_INIT.call_once(|| env_logger::init());
@@ -42,11 +42,11 @@ fn reactpyx(py: Python, m: &PyModule) -> PyResult<()> {
     add_event_handlers_to_module(py, m)?;
     add_virtual_dom_to_module(py, m)?;
 
-    info!("Núcleo y CLI de ReactPyx inicializados exitosamente.");
+    info!("ReactPyx core and CLI successfully initialized.");
     Ok(())
 }
 
-/// Agregar hooks al módulo PyO3
+/// Add hooks to PyO3 module
 fn add_hooks_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     use crate::hooks::{
         use_context, use_effect, use_effect_with_deps, use_lazy_state, use_reducer, use_state,
@@ -59,11 +59,11 @@ fn add_hooks_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(use_context, m)?)?;
     m.add_function(wrap_pyfunction!(use_reducer, m)?)?;
     m.add_function(wrap_pyfunction!(use_effect_with_deps, m)?)?;
-    m.add_function(wrap_pyfunction!(use_effect, m)?)?; // Añadir el nuevo hook simple
+    m.add_function(wrap_pyfunction!(use_effect, m)?)?;
     Ok(())
 }
 
-/// Agregar minificadores al módulo PyO3
+/// Add minifiers to PyO3 module
 fn add_minifiers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     use crate::css_minifier::minify_css_code;
     use crate::html_minifier::minify_html_code;
@@ -75,7 +75,7 @@ fn add_minifiers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-/// Agregar transformadores JSX al módulo PyO3
+/// Add JSX transformers to PyO3 module
 fn add_jsx_transformers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     use crate::jsx_transformer::{incremental_jsx_transform, parse_jsx};
 
@@ -97,7 +97,7 @@ fn add_compiler_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-/// Agregar manejadores de eventos al módulo PyO3
+/// Add event handlers to PyO3 module
 fn add_event_handlers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     use crate::event_handler::EventHandler;
 
@@ -105,7 +105,7 @@ fn add_event_handlers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-/// Agregar Virtual DOM y funcionalidades relacionadas al módulo PyO3
+/// Add Virtual DOM and related functionalities to PyO3 module
 fn add_virtual_dom_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     use crate::virtual_dom::VNode;
 
@@ -113,23 +113,23 @@ fn add_virtual_dom_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-/// Validar rutas para evitar rutas vacías
+/// Validate paths to avoid empty paths
 fn validate_path(path: &str) -> PyResult<()> {
     if path.trim().is_empty() {
         return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "La ruta no puede estar vacía.",
+            "Path cannot be empty.",
         ));
     } else if path.contains(&['*', '?', '"', '<', '>', '|'][..]) {
-        // Corregido para permitir separadores de directorios '/' y '\'
+        // Fixed to allow directory separators '/' and '\'
         return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "La ruta contiene caracteres inválidos.",
+            "Path contains invalid characters.",
         ));
     } else {
         Ok(())
     }
 }
 
-/// Compilar todos los archivos `.pyx` en un proyecto
+/// Compile all `.pyx` files in a project
 #[pyfunction]
 fn compile_all_pyx_py(
     project_root: &str,
@@ -146,7 +146,7 @@ fn compile_all_pyx_py(
     })
 }
 
-/// Compilar un archivo `.pyx` a Python
+/// Compile a `.pyx` file to Python
 #[pyfunction]
 fn compile_pyx_file_to_python_py(
     file_path: &str,
@@ -165,7 +165,7 @@ fn compile_pyx_file_to_python_py(
     })
 }
 
-/// Actualizar la aplicación cuando cambie el código fuente
+/// Update the application when the source code changes
 #[pyfunction]
 fn update_application_py(
     module_name: &str,
@@ -187,7 +187,7 @@ fn update_application_py(
     })
 }
 
-/// Compilar un archivo `.pyx` a JavaScript
+/// Compile a `.pyx` file to JavaScript
 #[pyfunction]
 fn compile_pyx_to_js_py(
     entry_file: &str,
@@ -207,20 +207,19 @@ fn compile_pyx_to_js_py(
     })
 }
 
-/// Compilar un archivo `.pyx` a JavaScript - Implementación subyacente
+/// Compile a `.pyx` file to JavaScript - Underlying implementation
 async fn compile_pyx_to_js(
     entry_file: &str,
     config_path: &str,
     output_dir: &str,
     target_env: &str,
 ) -> anyhow::Result<()> {
-    // Implementación básica para que compile
     use std::path::Path;
 
     let entry_path = Path::new(entry_file);
     if !entry_path.exists() {
         return Err(anyhow::anyhow!(
-            "Archivo de entrada no existe: {}",
+            "Input file does not exist: {}",
             entry_file
         ));
     }
@@ -232,17 +231,17 @@ async fn compile_pyx_to_js(
     tokio::fs::create_dir_all(output_dir).await?;
     tokio::fs::write(&output_path, js_code).await?;
 
-    info!("Compilado exitosamente a JavaScript: {}", entry_file);
+    info!("Successfully compiled to JavaScript: {}", entry_file);
     Ok(())
 }
 
-/// Agregar funciones Python para iniciar el CLI desde Python
+/// Add Python functions to start the CLI from Python
 #[pyfunction]
 fn run_cli_py() -> PyResult<()> {
     use crate::cli::run_cli;
 
     if let Err(e) = run_cli() {
-        error!("Error en la CLI: {}", e);
+        error!("Error in CLI: {}", e);
         return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
             e.to_string(),
         ));

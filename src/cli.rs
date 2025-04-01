@@ -71,49 +71,49 @@ pub fn run_cli() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::CreateProject { project_name } => {
-            info!("Creando proyecto: {}", project_name);
-            create_project(&project_name).context("Error al crear el proyecto")?;
+            info!("Creating project: {}", project_name);
+            create_project(&project_name).context("Error creating project")?;
         }
         Commands::Init { env } => {
-            info!("Inicializando proyecto en modo {}", env);
+            info!("Initializing project in {} mode", env);
             if !["development", "production"].contains(&env.as_str()) {
                 error!(
-                    "Ambiente inválido: {}. Usa 'development' o 'production'.",
+                    "Invalid environment: {}. Use 'development' or 'production'.",
                     env
                 );
                 std::process::exit(1);
             }
-            init_project(&env).context("Error al inicializar el proyecto")?;
+            init_project(&env).context("Error initializing project")?;
         }
         Commands::Run => {
-            info!("Ejecutando servidor de desarrollo");
+            info!("Running development server");
             TOKIO_RUNTIME
                 .block_on(run_server())
-                .context("Error al ejecutar el servidor")?;
+                .context("Error running server")?;
         }
         Commands::Build { env, output } => {
-            info!("Construyendo proyecto para ambiente {}", env);
+            info!("Building project for {} environment", env);
             if !ENV_OPTIONS.contains(&env.as_str()) {
-                error!("Ambiente no reconocido: {}. Usa 'node' o 'python'.", env);
+                error!("Unrecognized environment: {}. Use 'node' or 'python'.", env);
                 std::process::exit(1);
             }
             TOKIO_RUNTIME
                 .block_on(build_project(&output, &env))
-                .context("Error al construir el proyecto")?;
+                .context("Error building project")?;
         }
         Commands::Install { library } => {
-            info!("Instalando librería: {}", library);
+            info!("Installing library: {}", library);
             if !ALLOWED_LIBRARIES.contains(&library.as_str()) {
                 error!(
-                    "Librería no reconocida: {}. Las librerías permitidas son: {:?}",
+                    "Unrecognized library: {}. Allowed libraries are: {:?}",
                     library, ALLOWED_LIBRARIES
                 );
                 std::process::exit(1);
             }
-            install_library(&library).context("Error al instalar la librería")?;
+            install_library(&library).context("Error installing library")?;
         }
     }
 
-    info!("Comando ejecutado exitosamente.");
+    info!("Command executed successfully.");
     Ok(())
 }

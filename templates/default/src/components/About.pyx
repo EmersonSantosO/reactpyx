@@ -1,14 +1,14 @@
 def About():
     return (
         <section>
-            <h2>Acerca de</h2>
-            <p>ReactPyx es un framework que combina la potencia de React con Python.</p>
-            <p>Características principales:</p>
+            <h2>About</h2>
+            <p>ReactPyx is a framework that combines the power of React with Python.</p>
+            <p>Main features:</p>
             <ul>
-                <li>Componentes al estilo de React</li>
-                <li>Sistema de hooks</li>
-                <li>Recarga en caliente (HMR)</li>
-                <li>Rendimiento optimizado con Rust</li>
+                <li>React-style components</li>
+                <li>Hook system</li>
+                <li>Hot Module Replacement (HMR)</li>
+                <li>Optimized performance with Rust</li>
             </ul>
         </section>
     )

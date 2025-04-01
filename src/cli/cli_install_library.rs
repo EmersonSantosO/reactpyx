@@ -3,7 +3,7 @@ use colored::Colorize;
 use std::process::Command;
 
 pub fn install_library(library: &str) -> Result<()> {
-    println!("{} {}...", "Instalando".green(), library.blue());
+    println!("{} {}...", "Installing".green(), library.blue());
     
     match library {
         "tailwind" => {
@@ -11,17 +11,17 @@ pub fn install_library(library: &str) -> Result<()> {
                 .args(&["install", "-D", "tailwindcss"])
                 .spawn()?
                 .wait()
-                .context("Error al ejecutar npm install tailwindcss")?;
+                .context("Error running npm install tailwindcss")?;
 
             Command::new("npx")
                 .args(&["tailwindcss", "init"])
                 .spawn()?
                 .wait()
-                .context("Error al inicializar tailwindcss")?;
+                .context("Error initializing tailwindcss")?;
                 
-            println!("{} {}", "✓".green(), "Tailwind CSS instalado correctamente");
+            println!("{} {}", "✓".green(), "Tailwind CSS installed successfully");
             
-            // Crear archivos de configuración para Tailwind
+            // Create configuration files for Tailwind
             std::fs::write(
                 "tailwind.config.js",
                 r#"module.exports = {
@@ -32,31 +32,31 @@ pub fn install_library(library: &str) -> Result<()> {
   plugins: [],
 }"#,
             )
-            .context("Error al crear tailwind.config.js")?;
+            .context("Error creating tailwind.config.js")?;
         }
         "bootstrap" => {
             Command::new("npm")
                 .args(&["install", "bootstrap"])
                 .spawn()?
                 .wait()
-                .context("Error al ejecutar npm install bootstrap")?;
+                .context("Error running npm install bootstrap")?;
                 
-            println!("{} {}", "✓".green(), "Bootstrap instalado correctamente");
+            println!("{} {}", "✓".green(), "Bootstrap installed successfully");
             
-            // Crear archivo de importación para Bootstrap
+            // Create import file for Bootstrap
             std::fs::write(
                 "src/styles/bootstrap.css",
-                r#"/* Archivo de importación de Bootstrap */
+                r#"/* Bootstrap import file */
 @import 'bootstrap/dist/css/bootstrap.min.css';
 "#,
             )
-            .context("Error al crear archivo de importación bootstrap.css")?;
+            .context("Error creating bootstrap.css import file")?;
         }
         _ => {
-            return Err(anyhow::anyhow!("Librería no reconocida: {}", library));
+            return Err(anyhow::anyhow!("Unrecognized library: {}", library));
         }
     }
     
-    println!("{} {}", "Completado:".green(), format!("{} instalado y configurado.", library).green());
+    println!("{} {}", "Completed:".green(), format!("{} installed and configured.", library).green());
     Ok(())
 }

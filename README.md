@@ -1,120 +1,120 @@
 <div align="center">
 
   <h1>ReactPyx</h1>
-  <p>Un framework moderno que combina la potencia de React con Python y Rust</p>
+  <p>A modern framework combining the power of React with Python and Rust</p>
   
   <div>
-    <img src="https://img.shields.io/badge/versión-0.1.0-blue" alt="Versión">
-    <img src="https://img.shields.io/badge/estado-alpha-orange" alt="Estado">
+    <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version">
+    <img src="https://img.shields.io/badge/status-alpha-orange" alt="Status">
     <img src="https://img.shields.io/badge/rust-1.75+-orange" alt="Rust">
     <img src="https://img.shields.io/badge/python-3.8_|_3.9_|_3.10_|_3.11_|_3.12_|_3.13-blue" alt="Python">
   </div>
 </div>
 
-## 🚀 Características
+## 🚀 Features
 
-- **Virtual DOM en Rust** - Renderizado ultrarrápido con operaciones de diff/patch
-- **Componentes declarativos** - Define tus interfaces usando sintaxis similar a JSX
-- **Sistema de Hooks** - Usa hooks similares a React (`use_state`, `use_effect`, etc.)
-- **Hot Module Replacement** - Recarga instantánea durante desarrollo
-- **Compilado con Rust** - Core de alto rendimiento escrito en Rust
-- **Suspense y componentes asíncronos** - Manejo elegante de carga asíncrona
+- **Virtual DOM in Rust** - Ultra-fast rendering with diff/patch operations
+- **Declarative Components** - Define interfaces using JSX-like syntax
+- **Hook System** - Use React-like hooks (`use_state`, `use_effect`, etc.)
+- **Hot Module Replacement** - Instant reloading during development
+- **Built with Rust** - High-performance core written in Rust
+- **Suspense & Async Components** - Elegant handling of asynchronous loading
 
-## 📦 Instalación
+## 📦 Installation
 
 ```bash
 pip install reactpyx
 ```
 
-## 🛠️ Uso Rápido
+## 🛠️ Quick Usage
 
-### Crear un nuevo proyecto
+### Create a new project
 
 ```bash
-reactpyx create-project mi-aplicacion
-cd mi-aplicacion
+reactpyx create-project my-app
+cd my-app
 ```
 
-### Inicializar el proyecto
+### Initialize the project
 
 ```bash
 reactpyx init --env development
 ```
 
-### Ejecutar servidor de desarrollo
+### Run development server
 
 ```bash
 reactpyx run
 ```
 
-## 📋 Creando componentes
+## 📋 Creating Components
 
-Crea componentes en archivos `.pyx` dentro de la carpeta `src/components`:
+Create components in `.pyx` files inside the `src/components` folder:
 
 ```python
-# src/components/Contador.pyx
+# src/components/Counter.pyx
 
-def Contador():
-    count, set_count = use_state("contador", 0)
+def Counter():
+    count, set_count = use_state("counter", 0)
 
-    def incrementar():
+    def increment():
         set_count(count + 1)
 
     return (
-        <div className="contador">
-            <h2>Contador: {count}</h2>
-            <button onClick={incrementar}>Incrementar</button>
+        <div className="counter">
+            <h2>Counter: {count}</h2>
+            <button onClick={increment}>Increment</button>
         </div>
     )
 ```
 
-## 🖥️ Ejemplo de aplicación
+## 🖥️ Application example
 
 ```python
 # src/App.pyx
-from components.Contador import Contador
+from components.Counter import Counter
 
 def App():
     return (
         <div className="container">
-            <h1>Mi aplicación ReactPyx</h1>
-            <Contador />
+            <h1>My ReactPyx App</h1>
+            <Counter />
         </div>
     )
 ```
 
-## 📚 Documentación
+## 📚 Documentation
 
-Para documentación completa, visita:
+For complete documentation, visit:
 
-- [Guía de inicio](docs/guia-inicio.md)
+- [Getting Started](docs/getting-started.md)
 - [API Reference](docs/api-reference.md)
-- [Conceptos avanzados](docs/conceptos-avanzados.md)
-- [Optimización](docs/optimizacion.md)
+- [Advanced Concepts](docs/advanced-concepts.md)
+- [Optimization](docs/optimization.md)
 
 ## 🧩 Plugins
 
-ReactPyx soporta plugins para extender su funcionalidad:
+ReactPyx supports plugins to extend its functionality:
 
 ```bash
 reactpyx install tailwind
 reactpyx install bootstrap
 ```
 
-## 🏗️ Compilación para producción
+## 🏗️ Production builds
 
 ```bash
-# Compilar para servidor Python
+# Build for Python server
 reactpyx build --env python --output dist
 
-# Compilar para Node.js
+# Build for Node.js
 reactpyx build --env node --output dist
 ```
 
-## 👨‍💻 Contribuir
+## 👨‍💻 Contributing
 
-¡Las contribuciones son bienvenidas! Por favor lee [CONTRIBUTING.md](CONTRIBUTING.md) para detalles sobre nuestro código de conducta y el proceso para enviarnos pull requests.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
-## 📄 Licencia
+## 📄 License
 
-Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

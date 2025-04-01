@@ -1,6 +1,6 @@
 """
-Módulo de hooks para ReactPyx.
-Este módulo exporta los hooks disponibles en la versión de Rust
+Hook module for ReactPyx.
+This module exports hooks available from the Rust version
 """
 
 from reactpyx._core import (  
@@ -22,33 +22,33 @@ __all__ = [
 ]
 
 """
-Guía de Uso de Hooks de ReactPyx
+ReactPyx Hooks Usage Guide
 
 1. use_state:
-   - Uso: value, set_value = use_state(component_id, key, initial_value)
-   - Ejemplo: count, setCount = use_state("counter", "count", 0)
+   - Usage: value, set_value = use_state(component_id, key, initial_value)
+   - Example: count, setCount = use_state("counter", "count", 0)
 
 2. use_effect:
-   - Uso: use_effect(effect_function)
-   - Ejemplo: use_effect(lambda: print("Componente renderizado"))
-   - Se ejecuta en cada renderizado
+   - Usage: use_effect(effect_function)
+   - Example: use_effect(lambda: print("Component rendered"))
+   - Runs on every render
 
 3. use_effect_with_deps:
-   - Uso: use_effect_with_deps(effect_id, effect_function, dependencies)
-   - Ejemplo: use_effect_with_deps("counter-effect", lambda deps: print(f"Count: {count}"), [count])
-   - Solo se ejecuta cuando cambian las dependencias
+   - Usage: use_effect_with_deps(effect_id, effect_function, dependencies)
+   - Example: use_effect_with_deps("counter-effect", lambda deps: print(f"Count: {count}"), [count])
+   - Only runs when dependencies change
 
 4. use_context:
-   - Uso: value = use_context(component_id, key)
-   - Ejemplo: theme = use_context("ThemeProvider", "theme")
+   - Usage: value = use_context(component_id, key)
+   - Example: theme = use_context("ThemeProvider", "theme")
 
 5. use_reducer:
-   - Uso: state, dispatch = use_reducer(component_id, key, reducer, initial_state)
-   - Ejemplo: 
+   - Usage: state, dispatch = use_reducer(component_id, key, reducer, initial_state)
+   - Example: 
      state, dispatch = use_reducer("todo-app", "todos", lambda state, action: [...], [])
-     dispatch({"type": "ADD_TODO", "payload": "Nueva tarea"})
+     dispatch({"type": "ADD_TODO", "payload": "New task"})
 
 6. use_lazy_state:
-   - Uso: value = use_lazy_state(component_id, key, initial_value=None)
-   - Ejemplo: config = use_lazy_state("app", "config", load_default_config())
+   - Usage: value = use_lazy_state(component_id, key, initial_value=None)
+   - Example: config = use_lazy_state("app", "config", load_default_config())
 """

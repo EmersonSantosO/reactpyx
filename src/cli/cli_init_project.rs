@@ -10,46 +10,46 @@ pub fn init_project(env: &str) -> Result<()> {
     pb.set_style(
         ProgressStyle::default_spinner()
             .tick_strings(&["-", "\\", "|", "/"])
-            .template("{spinner:.blue} Inicializando proyecto en modo {msg}...")?,
+            .template("{spinner:.blue} Initializing project in {msg} mode...")?,
     );
     pb.set_message(env.to_string());
 
-    // Verificar que pip esté instalado
+    // Check that pip is installed
     let pip_check = Command::new("pip")
         .arg("--version")
         .output()
-        .context("No se pudo ejecutar pip. Asegúrate de que pip esté instalado y en el PATH")?;
+        .context("Could not run pip. Make sure pip is installed and in your PATH")?;
 
     if !pip_check.status.success() {
-        return Err(anyhow::anyhow!("Pip no está correctamente instalado"));
+        return Err(anyhow::anyhow!("Pip is not properly installed"));
     }
 
-    // Instalar dependencias específicas para el entorno
+    // Install environment-specific dependencies
     match env {
         "development" => {
             Command::new("pip")
                 .args(&["install", "reactpyx", "fastapi", "uvicorn"])
                 .spawn()?
                 .wait()
-                .context("Error al instalar dependencias de desarrollo")?;
+                .context("Error installing development dependencies")?;
         }
         "production" => {
-            // Solo instala dependencias necesarias para producción
+            // Only install production-necessary dependencies
             Command::new("pip")
                 .args(&["install", "reactpyx", "fastapi"])
                 .spawn()?
                 .wait()
-                .context("Error al instalar dependencias de producción")?;
+                .context("Error installing production dependencies")?;
         }
         _ => {
-            return Err(anyhow::anyhow!("Entorno no reconocido: {}", env));
+            return Err(anyhow::anyhow!("Unrecognized environment: {}", env));
         }
     }
 
     pb.finish_with_message(format!(
         "{} {}",
-        "Proyecto".green(),
-        "inicializado exitosamente!".green()
+        "Project".green(),
+        "successfully initialized!".green()
     ));
     Ok(())
 }

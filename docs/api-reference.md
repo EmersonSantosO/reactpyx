@@ -1,20 +1,20 @@
-# Referencia de API de ReactPyx
+# ReactPyx API Reference
 
 <div align="center">
   <img src="assets/api-reference.png" alt="API Reference" width="300">
-  <p><strong>Compatible con Python 3.8 hasta 3.13</strong></p>
+  <p><strong>Compatible with Python 3.8 through 3.13</strong></p>
 </div>
 
-Esta documentación detalla todas las APIs disponibles en ReactPyx.
+This documentation details all APIs available in ReactPyx.
 
-## Índice
+## Table of Contents
 
 - [Virtual DOM](#virtual-dom)
 - [Hooks](#hooks)
-- [Componentes Especiales](#componentes-especiales)
+- [Special Components](#special-components)
 - [CLI](#cli)
-- [Precompilador JSX](#precompilador-jsx)
-- [Sistema de Eventos](#sistema-de-eventos)
+- [JSX Precompiler](#jsx-precompiler)
+- [Event System](#event-system)
 
 ---
 
@@ -22,7 +22,7 @@ Esta documentación detalla todas las APIs disponibles en ReactPyx.
 
 ### VNode
 
-La clase base para los nodos virtuales.
+The base class for virtual nodes.
 
 ```python
 VNode(
@@ -35,24 +35,24 @@ VNode(
 )
 ```
 
-#### Métodos
+#### Methods
 
-| Método     | Descripción                 |
-| ---------- | --------------------------- |
-| `render()` | Renderiza el nodo como HTML |
+| Method     | Description              |
+| ---------- | ------------------------ |
+| `render()` | Renders the node as HTML |
 
 ### Patch
 
-Tipos de modificaciones para nodos virtuales.
+Types of modifications for virtual nodes.
 
-| Tipo           | Descripción                       |
-| -------------- | --------------------------------- |
-| `AddProp`      | Añade una propiedad a un nodo     |
-| `RemoveProp`   | Elimina una propiedad de un nodo  |
-| `UpdateProp`   | Actualiza una propiedad existente |
-| `AddChild`     | Añade un nodo hijo                |
-| `RemoveChild`  | Elimina un nodo hijo              |
-| `ReplaceChild` | Reemplaza un nodo hijo            |
+| Type           | Description                    |
+| -------------- | ------------------------------ |
+| `AddProp`      | Adds a property to a node      |
+| `RemoveProp`   | Removes a property from a node |
+| `UpdateProp`   | Updates an existing property   |
+| `AddChild`     | Adds a child node              |
+| `RemoveChild`  | Removes a child node           |
+| `ReplaceChild` | Replaces a child node          |
 
 ---
 
@@ -64,7 +64,7 @@ Tipos de modificaciones para nodos virtuales.
 value, set_state = use_state(component_id: str, key: str, initial_value)
 ```
 
-Crea un estado local para el componente.
+Creates local state for the component.
 
 ### use_effect
 
@@ -72,7 +72,7 @@ Crea un estado local para el componente.
 use_effect(effect_function)
 ```
 
-Ejecuta un efecto secundario en cada renderizado (sin dependencias).
+Executes a side effect on each render (without dependencies).
 
 ### use_effect_with_deps
 
@@ -80,7 +80,7 @@ Ejecuta un efecto secundario en cada renderizado (sin dependencias).
 use_effect_with_deps(effect_id: str, effect_function, dependencies: list)
 ```
 
-Ejecuta efectos secundarios solo cuando cambian las dependencias especificadas.
+Executes side effects only when the specified dependencies change.
 
 ### use_context
 
@@ -88,7 +88,7 @@ Ejecuta efectos secundarios solo cuando cambian las dependencias especificadas.
 value = use_context(component_id: str, key: str)
 ```
 
-Accede a un valor de contexto compartido.
+Accesses a shared context value.
 
 ### use_reducer
 
@@ -96,7 +96,7 @@ Accede a un valor de contexto compartido.
 state, dispatch = use_reducer(component_id: str, key: str, reducer, initial_state)
 ```
 
-Gestiona estados complejos con un patrón reducer.
+Manages complex states with a reducer pattern.
 
 ### use_lazy_state
 
@@ -104,83 +104,83 @@ Gestiona estados complejos con un patrón reducer.
 value = use_lazy_state(component_id: str, key: str, initial_value=None)
 ```
 
-Inicializa un estado solo cuando se necesita.
+Initializes a state only when needed.
 
 ---
 
-## Componentes Especiales
+## Special Components
 
 ### SuspenseComponent
 
-Maneja estados de carga y errores.
+Handles loading states and errors.
 
 ```python
 suspense = SuspenseComponent()
 suspense.load_data()
 
 if suspense.is_loading():
-    # Mostrar indicador de carga
+    # Show loading indicator
 elif suspense.has_error():
-    # Mostrar mensaje de error
+    # Show error message
 else:
-    # Mostrar contenido
+    # Show content
 ```
 
 ### LazyComponent
 
-Carga componentes de forma asíncrona.
+Loads components asynchronously.
 
 ```python
 lazy = LazyComponent()
 await lazy.load_resource_async(delay=2)
 
 if await lazy.is_loading():
-    # Mostrar carga
+    # Show loading
 else:
-    resultado = await lazy.get_result()
-    # Usar el resultado
+    result = await lazy.get_result()
+    # Use the result
 ```
 
 ---
 
 ## CLI
 
-### Comandos disponibles
+### Available Commands
 
-| Comando                    | Descripción                          |
-| -------------------------- | ------------------------------------ |
-| `create-project <nombre>`  | Crea un nuevo proyecto               |
-| `init [--env]`             | Inicializa dependencias del proyecto |
-| `run`                      | Ejecuta el servidor de desarrollo    |
-| `build [--env] [--output]` | Compila el proyecto para producción  |
-| `install <librería>`       | Instala una librería/plugin          |
+| Command                    | Description                       |
+| -------------------------- | --------------------------------- |
+| `create-project <name>`    | Creates a new project             |
+| `init [--env]`             | Initializes project dependencies  |
+| `run`                      | Runs the development server       |
+| `build [--env] [--output]` | Builds the project for production |
+| `install <library>`        | Installs a library/plugin         |
 
 ---
 
-## Precompilador JSX
+## JSX Precompiler
 
 ```python
 precompiler = JSXPrecompiler()
-python_code = precompiler.precompile_jsx("ruta/al/archivo.jsx")
+python_code = precompiler.precompile_jsx("path/to/file.jsx")
 ```
 
 ---
 
-## Sistema de Eventos
+## Event System
 
 ```python
 handler = EventHandler()
 
-# Añadir listener
+# Add listener
 handler.add_event_listener("click", callback_function)
 
-# Disparar evento
+# Trigger event
 handler.trigger_event("click", [arg1, arg2], py)
 
-# Eliminar listeners
+# Remove listeners
 handler.remove_event_listeners("click")
 ```
 
 ---
 
-Para más ejemplos y casos de uso, consulta la sección de [conceptos avanzados](conceptos-avanzados.md).
+For more examples and use cases, see the [advanced concepts](advanced-concepts.md) section.

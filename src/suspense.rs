@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 
 #[pyclass]
 pub struct SuspenseComponent {
-    is_loading: Arc<Mutex<bool>>,      // Para estado de carga
-    error: Arc<Mutex<Option<String>>>, // Para manejo de errores
+    is_loading: Arc<Mutex<bool>>,      // For loading state
+    error: Arc<Mutex<Option<String>>>, // For error handling
 }
 
 #[pymethods]
@@ -27,7 +27,7 @@ impl SuspenseComponent {
             *is_loading = false;
 
             let mut error = error_clone.lock().unwrap();
-            *error = Some("Error de carga de datos".to_string());
+            *error = Some("Data loading error".to_string());
         });
     }
 

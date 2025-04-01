@@ -10,11 +10,11 @@ use crate::compiler;
 pub async fn run_server() -> Result<()> {
     println!(
         "{} {}",
-        "Ejecutando el servidor de desarrollo...".yellow(),
+        "Running development server...".yellow(),
         "http://localhost:8000".blue()
     );
 
-    // Verificar si uvicorn está disponible
+    // Check if uvicorn is available
     let uvicorn_check = Command::new("uvicorn")
         .arg("--version")
         .output()
@@ -24,30 +24,30 @@ pub async fn run_server() -> Result<()> {
         println!(
             "{} {}",
             "Error:".red(),
-            "Uvicorn no está instalado o no está disponible en el PATH".red()
+            "Uvicorn is not installed or not available in PATH".red()
         );
         println!(
             "{} {}",
-            "Sugerencia:".yellow(),
-            "Instala uvicorn con 'pip install uvicorn'".yellow()
+            "Suggestion:".yellow(),
+            "Install uvicorn with 'pip install uvicorn'".yellow()
         );
-        return Err(anyhow::anyhow!("Uvicorn no está disponible"));
+        return Err(anyhow::anyhow!("Uvicorn is not available"));
     }
 
-    // Inicia el servidor FastAPI en un proceso separado
+    // Start FastAPI server in a separate process
     let mut child = Command::new("uvicorn")
         .arg("main:app")
         .arg("--reload")
         .spawn()?;
 
-    println!("{} {}", "✓".green(), "Servidor iniciado correctamente");
+    println!("{} {}", "✓".green(), "Server started successfully");
     println!(
         "{} {}",
-        "Observando cambios en".blue(),
+        "Watching for changes in".blue(),
         "src/**/*.pyx".bright_blue()
     );
 
-    // Observa cambios en los archivos de la carpeta `src`
+    // Watch for changes in `src` folder files
     let (tx, rx) = channel();
     let mut watcher = RecommendedWatcher::new(
         tx,
@@ -56,7 +56,7 @@ pub async fn run_server() -> Result<()> {
     
     watcher.watch(Path::new("src"), RecursiveMode::Recursive)?;
 
-    // Maneja eventos de cambio
+    // Handle change events
     for res in rx {
         match res {
             Ok(event) => {
@@ -70,11 +70,11 @@ pub async fn run_server() -> Result<()> {
                     }
                 }
             },
-            Err(e) => println!("{} {:?}", "Error al observar:".red(), e),
+            Err(e) => println!("{} {:?}", "Error watching:".red(), e),
         }
     }
 
-    // Espera a que el proceso del servidor termine
+    // Wait for server process to terminate
     child.wait()?;
 
     Ok(())
@@ -83,19 +83,19 @@ pub async fn run_server() -> Result<()> {
 async fn handle_file_change(path: &Path) -> Result<()> {
     println!(
         "{} {}",
-        "Archivo modificado:".green(),
+        "File changed:".green(),
         path.display()
     );
     
-    // Recompilar el archivo modificado
+    // Recompile modified file
     let project_root = std::env::current_dir()?.to_string_lossy().to_string();
     let file_path = path.to_string_lossy().to_string();
     
-    println!("{} {}", "Recompilando".yellow(), file_path);
+    println!("{} {}", "Recompiling".yellow(), file_path);
 
     match crate::compiler::compile_pyx_file_to_python(path, "config.json", "python").await {
-        Ok(_) => println!("{} {}", "✓".green(), "Compilación exitosa"),
-        Err(e) => println!("{} {}: {}", "✗".red(), "Error al compilar".red(), e),
+        Ok(_) => println!("{} {}", "✓".green(), "Compilation successful"),
+        Err(e) => println!("{} {}: {}", "✗".red(), "Compilation error".red(), e),
     }
     
     Ok(())

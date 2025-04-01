@@ -7,24 +7,24 @@ def Home():
     def increment():
         setCount(count + 1)
     
-    # Demostración de use_effect (sin dependencias, se ejecuta siempre)
-    use_effect(lambda: print("Renderizando componente Home"))
+    # Demonstration of use_effect (no dependencies, runs every time)
+    use_effect(lambda: print("Rendering Home component"))
     
-    # Demostración de use_effect_with_deps (con dependencias, se ejecuta cuando cambia count)
+    # Demonstration of use_effect_with_deps (with dependencies, runs when count changes)
     use_effect_with_deps(
         "count_effect", 
-        lambda deps: setMessage(f"Contador actualizado a: {count}"),
+        lambda deps: setMessage(f"Counter updated to: {count}"),
         [count]
     )
     
     return (
         <section>
-            <h2>Página de Inicio</h2>
-            <p>Esta es la página principal de tu aplicación ReactPyx.</p>
+            <h2>Home Page</h2>
+            <p>This is the main page of your ReactPyx application.</p>
             <div>
-                <p>Contador: {count}</p>
+                <p>Counter: {count}</p>
                 {message and <div className="message">{message}</div>}
-                <button onClick={increment}>Incrementar</button>
+                <button onClick={increment}>Increment</button>
             </div>
         </section>
     )
