@@ -11,6 +11,24 @@
   </div>
 </div>
 
+> **⚠️ EARLY DEVELOPMENT NOTICE**
+>
+> **This project is in early stages of development and not yet ready for production use.**
+>
+> ReactPyx is currently undergoing initial development and testing. Features may change
+> significantly between versions, and backwards compatibility is not guaranteed at this stage.
+
+> **⚠️ TEMPORARY LICENSE RESTRICTIONS**
+>
+> **All rights reserved. Not for distribution, modification, or commercial use.**
+>
+> During this early development phase, all code, documentation, and assets in this repository
+> are protected by restrictive copyright. No part of this project may be reproduced, distributed,
+> or used in any form without explicit written permission from the project owners.
+>
+> This restricted license is temporary until the project reaches a more mature state, at which point
+> it will be released under the MIT License as indicated below.
+
 ## 🚀 Features
 
 - **Virtual DOM in Rust** - Ultra-fast rendering with diff/patch operations
