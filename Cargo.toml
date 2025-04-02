@@ -36,7 +36,7 @@ minifier = "0.3.0"
 
 # Concurrent processing tools and threading
 rayon = "1.8.0"
-futures = "0.3.29"
+futures = "0.3.31"
 
 # Error handling and utilities
 anyhow = "1.0.75"
