@@ -50,7 +50,7 @@ parking_lot = "0.12.1"
 dashmap = "5.5.3"
 
 # Command-line interface tools
-clap = "4.4.11"
+clap = "4.5.35"
 colored = "2.0.4"
 indicatif = "0.17.7"
 
