@@ -1,8 +1,23 @@
-# Default owners for everything in the repo
-* @EmersonSantosO
+# These owners will be the default owners for everything in this repository
 
-# Specific ownership for critical files
+# Unless a later match takes precedence, they will be requested for
+
+# review when someone opens a pull request.
+
+- @EmersonSantosO
+
+# Core files requiring extra review
+
 /src/ @EmersonSantosO
-/Cargo.toml @EmersonSantosO
+_.rs @EmersonSantosO
 /pyproject.toml @EmersonSantosO
-/LICENSE* @EmersonSantosO
+/LICENSE_ @EmersonSantosO
+/README.md @EmersonSantosO
+
+# Documentation files
+
+/docs/ @EmersonSantosO
+
+# Template files
+
+/templates/ @EmersonSantosO
