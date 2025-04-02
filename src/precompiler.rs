@@ -6,8 +6,8 @@ use std::time::UNIX_EPOCH;
 
 #[pyclass]
 pub struct JSXPrecompiler {
-    pub cache: Arc<Mutex<String>>, // Usar `Mutex` para manejo de concurrencia
-    pub last_modified: Arc<Mutex<u64>>, // Usar `Mutex` para manejar última modificación
+    pub cache: Arc<Mutex<String>>, // Use `Mutex` for concurrency handling
+    pub last_modified: Arc<Mutex<u64>>, // Use `Mutex` to handle last modification time
 }
 
 #[pymethods]
@@ -20,44 +20,44 @@ impl JSXPrecompiler {
         }
     }
 
-    /// Precompila el archivo JSX y actualiza el caché si es necesario
+    /// Precompiles the JSX file and updates the cache if needed
     pub fn precompile_jsx(&self, file_path: &str) -> PyResult<String> {
         let path = Path::new(file_path);
         if !path.exists() {
             return Err(PyErr::new::<pyo3::exceptions::PyFileNotFoundError, _>(
-                format!("El archivo {} no existe", file_path),
+                format!("The file {} does not exist", file_path),
             ));
         }
 
-        // Obtener la última modificación del archivo
+        // Get the file's last modification time
         let metadata = fs::metadata(path).map_err(|e| {
-            PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Error al leer metadatos: {}", e))
+            PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Error reading metadata: {}", e))
         })?;
         let modified_time = metadata
             .modified()
             .map_err(|e| {
                 PyErr::new::<pyo3::exceptions::PyIOError, _>(format!(
-                    "Error al obtener tiempo de modificación: {}",
+                    "Error getting modification time: {}",
                     e
                 ))
             })?
             .duration_since(UNIX_EPOCH)
             .map_err(|e| {
-                PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Error con UNIX_EPOCH: {}", e))
+                PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("Error with UNIX_EPOCH: {}", e))
             })?
             .as_secs();
 
-        // Verificar si el archivo ha cambiado desde la última vez
+        // Check if the file has changed since last time
         let mut last_modified = self.last_modified.lock().unwrap();
         if *last_modified != modified_time {
             let jsx_code = fs::read_to_string(path).map_err(|e| {
                 PyErr::new::<pyo3::exceptions::PyIOError, _>(format!(
-                    "Error al leer el archivo: {}",
+                    "Error reading the file: {}",
                     e
                 ))
             })?;
 
-            // Transformar JSX a Python
+            // Transform JSX to Python
             let parsed_code = self.transform_jsx_to_python(&jsx_code);
             let mut cache = self.cache.lock().unwrap();
             *cache = parsed_code;
@@ -68,7 +68,7 @@ impl JSXPrecompiler {
         Ok(cache.clone())
     }
 
-    /// Lógica de transformación de JSX a Python
+    /// Logic to transform JSX to Python
     fn transform_jsx_to_python(&self, jsx_code: &str) -> String {
         jsx_code
             .replace("<", "create_element(")

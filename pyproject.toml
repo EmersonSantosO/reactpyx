@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "reactpyx"
 version = "0.5.1"
-description = "Un framework moderno que combina React con Python y Rust"
+description = "A modern framework combining React with Python and Rust"
 authors = [{ name = "ReactPyx Team", email = "info@reactpyx.dev" }]
 license = "MIT"
 readme = "README.md"
@@ -29,4 +29,4 @@ strip = true
 cargo-extra-args = "--release"
 
 [project.scripts]
-reactpyx = "reactpyx.cli:run_cli_py" # Cambiado de "reactpyx.cli:run_cli_py"
+reactpyx = "reactpyx.cli:run_cli_py"

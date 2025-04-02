@@ -7,13 +7,11 @@ use tokio::runtime::Runtime;
 mod cli_build_project;
 mod cli_create_project;
 mod cli_init_project;
-mod cli_install_library;
 mod cli_run_server;
 
 use cli_build_project::build_project;
 use cli_create_project::create_project;
 use cli_init_project::init_project;
-use cli_install_library::install_library;
 use cli_run_server::run_server;
 use log::{error, info};
 

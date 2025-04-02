@@ -83,6 +83,52 @@ def App():
     )
 ```
 
+## 🎨 CSS Integration
+
+ReactPyx offers multiple ways to add styles to your application:
+
+### CSS Framework Integration (via CDN)
+
+```bash
+# Add Tailwind CSS to your project
+reactpyx install tailwind
+
+# Add Bootstrap to your project
+reactpyx install bootstrap
+```
+
+### Inline Styles
+
+```python
+def StyledComponent():
+    return <div style={"color": "blue", "fontSize": "24px"}>
+        Styled Component
+    </div>
+```
+
+### CSS Files
+
+Place CSS files in the `src/styles/` directory, and they'll be automatically included:
+
+```
+my-app/
+  └── src/
+      └── styles/
+          └── main.css
+```
+
+### Component-Specific Styles
+
+```python
+def ScopedComponent():
+    return <div className="my-component">
+        <style>
+            .my-component { color: blue; padding: 16px; }
+        </style>
+        <h1>Component with Scoped Styles</h1>
+    </div>
+```
+
 ## 📚 Documentation
 
 For complete documentation, visit:
@@ -91,15 +137,7 @@ For complete documentation, visit:
 - [API Reference](docs/api-reference.md)
 - [Advanced Concepts](docs/advanced-concepts.md)
 - [Optimization](docs/optimization.md)
-
-## 🧩 Plugins
-
-ReactPyx supports plugins to extend its functionality:
-
-```bash
-reactpyx install tailwind
-reactpyx install bootstrap
-```
+- [CSS Integration](docs/css_integration.md)
 
 ## 🏗️ Production builds
 

@@ -22,7 +22,7 @@ fn plugin_system(m: &PyModule) -> PyResult<()> {
     pub fn register_plugin(name: String, execute: PyObject) -> PyResult<()> {
         Python::with_gil(|py| {
             plugin_registry.insert(name.clone(), Plugin::new(name, execute));
-            println!("Plugin registrado: {}", name);
+            println!("Plugin registered: {}", name);
         });
         Ok(())
     }
@@ -37,7 +37,7 @@ fn plugin_system(m: &PyModule) -> PyResult<()> {
                     .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()));
             });
         } else {
-            println!("Plugin no encontrado: {}", name);
+            println!("Plugin not found: {}", name);
         }
         Ok(())
     }

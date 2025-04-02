@@ -1,93 +1,93 @@
-# Optimización en ReactPyx
+# Optimization in ReactPyx
 
 <div align="center">
-  <img src="assets/optimization.png" alt="Optimización" width="350">
+  <img src="assets/optimization.png" alt="Optimization" width="350">
 </div>
 
-## Contenido
+## Contents
 
-- [Optimización de rendimiento](#optimización-de-rendimiento)
-- [Minificación](#minificación)
+- [Performance Optimization](#performance-optimization)
+- [Minification](#minification)
 - [Code splitting](#code-splitting)
 - [Lazy loading](#lazy-loading)
 - [Profiling](#profiling)
 
 ---
 
-## Optimización de rendimiento
+## Performance Optimization
 
-### Memoización de componentes
+### Component Memoization
 
 ```python
 @memoize(["prop1", "prop2"])
-def ComponenteCostoso(props):
-    # Se renderiza solo si prop1 o prop2 cambian
+def ExpensiveComponent(props):
+    # Renders only when prop1 or prop2 change
     return <div>...</div>
 ```
 
-### Uso correcto de Hooks
+### Proper Use of Hooks
 
 ```python
-def Componente():
-    # ❌ MAL: Lógica costosa en cada renderizado
-    datos_procesados = procesar_datos(props.datos)
+def Component():
+    # ❌ BAD: Expensive logic in every render
+    processed_data = process_data(props.data)
 
-    # ✅ BIEN: Solo se ejecuta cuando cambian los datos
+    # ✅ GOOD: Only executes when data changes
     use_effect_with_deps(
-        "procesar",
-        lambda deps: set_procesados(procesar_datos(props.datos)),
-        [props.datos]
+        "process",
+        lambda deps: set_processed(process_data(props.data)),
+        [props.data]
     )
 
-    # ✅ BIEN: Uso del hook use_effect para registros sin dependencias
-    use_effect(lambda: console_log("Renderizado completado"))
+    # ✅ GOOD: Using the use_effect hook for logging without dependencies
+    use_effect(lambda: console_log("Rendering completed"))
 ```
 
-### Optimizar re-renderizados
+### Optimize Re-renders
 
 ```python
-def ComponenteOptimizado(props):
-    # Uso del estado local para memorizar datos costosos
+def OptimizedComponent(props):
+    # Using local state to memoize expensive data
     memo, set_memo = use_state("memo", None)
 
-    # Calcular resultado solo cuando cambia props.datos
+    # Calculate result only when props.data changes
     use_effect_with_deps(
-        "calcular-memo",
-        lambda deps: set_memo(calculo_costoso(props.datos)) if props.datos != None else None,
-        [props.datos]
+        "calculate-memo",
+        lambda deps: set_memo(expensive_calculation(props.data)) if props.data != None else None,
+        [props.data]
     )
 
-    # Registrar cada renderizado
-    use_effect(lambda: print("Componente renderizado"))
+    # Log each render
+    use_effect(lambda: print("Component rendered"))
 
     return <div>{memo}</div>
 ```
 
-### Evitar cálculos innecesarios
+### Avoid Unnecessary Calculations
 
 ```python
-def Componente():
-    # Mal: se recalcula en cada renderizado
-    datos_procesados = procesar_datos(props.datos)
+def Component():
+    # Bad: recalculated on every render
+    processed_data = process_data(props.data)
 
-    # Mejor: se calcula solo cuando props.datos cambia
+    # Better: calculated only when props.data changes
     use_effect_with_deps(
-        "procesar",
-        lambda: set_procesados(procesar_datos(props.datos)),
-        [props.datos]
+        "process",
+        lambda: set_processed(process_data(props.data)),
+        [props.data]
     )
 ```
 
-## Minificación
+## Minification
 
-ReactPyx automáticamente minifica HTML, CSS y JavaScript para producción:
+ReactPyx automatically minifies HTML, CSS, and JavaScript for production:
 
 ```bash
-# La minificación está habilitada por defecto en producción
+# Minification is enabled by default in production
 reactpyx build --env python --output dist
 ```
 
-Para configurar las opciones de minificación, edita `pyx.config.json`:
+To configure minification options, edit `pyx.config.json`:
 
 ```json
 {
@@ -105,80 +105,80 @@ Para configurar las opciones de minificación, edita `pyx.config.json`:
 
 ## Code splitting
 
-Divide tu aplicación en fragmentos más pequeños:
+Split your application into smaller chunks:
 
 ```python
-# Importación dinámica de componentes
-MiComponente = dynamic_import("./components/MiComponente.pyx")
+# Dynamic component import
+MyComponent = dynamic_import("./components/MyComponent.pyx")
 
 def App():
     return <div>
         <Header />
-        <MiComponente />  # Se cargará solo cuando sea necesario
+        <MyComponent />  # Will be loaded only when needed
         <Footer />
     </div>
 ```
 
 ## Lazy loading
 
-Carga componentes solo cuando se necesitan:
+Load components only when they are needed:
 
 ```python
-# Crear referencia lazy
+# Create lazy reference
 LazyAdmin = lazy_component("./components/Admin.pyx")
 
 def App():
-    ruta = use_route()
+    route = use_route()
 
     return <div>
-        {ruta == "/admin" ?
-            <Suspense fallback={<Cargando />}>
+        {route == "/admin" ?
+            <Suspense fallback={<Loading />}>
                 <LazyAdmin />
             </Suspense>
             :
-            <PaginaPrincipal />
+            <MainPage />
         }
     </div>
 ```
 
 ## Profiling
 
-ReactPyx incluye herramientas para analizar el rendimiento:
+ReactPyx includes tools to analyze performance:
 
 ```python
-# Activar el modo de profiling
+# Enable profiling mode
 with profiling_mode():
-    html = render_component(MiComponente, props)
+    html = render_component(MyComponent, props)
 
-# Obtener resultados
-resultados = get_profiling_results()
-print(f"Tiempo de renderizado: {resultados.render_time}ms")
-print(f"Componentes más costosos: {resultados.expensive_components}")
+# Get results
+results = get_profiling_results()
+print(f"Render time: {results.render_time}ms")
+print(f"Most expensive components: {results.expensive_components}")
 ```
 
-### Visualización de rendimiento
+### Performance Visualization
 
-ReactPyx incluye un visualizador de rendimiento en el modo de desarrollo:
+ReactPyx includes a performance visualizer in development mode:
 
 ```bash
-# Activar visualizador de rendimiento
+# Enable performance visualizer
 reactpyx run --profile
 ```
 
-Esto muestra una interfaz gráfica donde podrás ver:
+This displays a graphical interface where you can see:
 
-1. Tiempo de renderizado por componente
-2. Número de re-renderizados
-3. Cuellos de botella
-4. Sugerencias de optimización
+1. Render time per component
+2. Number of re-renders
+3. Bottlenecks
+4. Optimization suggestions
 
-### Optimización automática
+### Automatic Optimization
 
-ReactPyx puede analizar tu aplicación y sugerir optimizaciones:
+ReactPyx can analyze your application and suggest optimizations:
 
 ```bash
-# Generar reporte de optimización
-reactpyx analyze --output informe.html
+# Generate optimization report
+reactpyx analyze --output report.html
 ```
 
-Esto generará un informe detallado con sugerencias para mejorar el rendimiento de tu aplicación.
+This will generate a detailed report with suggestions to improve your application's performance.

@@ -15,17 +15,17 @@ pub struct Config {
 }
 
 impl Config {
-    /// Carga y analiza el archivo de configuración
+    /// Loads and parses the configuration file
     pub fn load(config_path: &str) -> Result<Self> {
         let config_content = fs::read_to_string(config_path).with_context(|| {
             format!(
-                "Error al leer el archivo de configuración '{}'",
+                "Error reading configuration file '{}'",
                 config_path
             )
         })?;
 
         let config: Config = serde_json::from_str(&config_content)
-            .with_context(|| "Error al parsear el archivo de configuración JSON")?;
+            .with_context(|| "Error parsing JSON configuration file")?;
 
         Ok(config)
     }

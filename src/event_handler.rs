@@ -18,11 +18,11 @@ impl EventHandler {
         }
     }
 
-    /// Añadir un nuevo listener para un evento específico
+    /// Add a new listener for a specific event
     pub fn add_event_listener(&self, event: &str, callback: PyObject) -> PyResult<()> {
         if event.trim().is_empty() {
             return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "El nombre del evento no puede estar vacío.",
+                "Event name cannot be empty.",
             ));
         }
 
@@ -32,7 +32,7 @@ impl EventHandler {
         Ok(())
     }
 
-    /// Disparar un evento y ejecutar todos sus callbacks
+    /// Trigger an event and execute all its callbacks
     pub fn trigger_event(&self, event: &str, args: Vec<PyObject>, py: Python) -> PyResult<()> {
         if let Some(handlers) = self.handlers.get(event) {
             for handler in handlers.value().iter() {
@@ -43,13 +43,13 @@ impl EventHandler {
         Ok(())
     }
 
-    /// Remover listeners de un evento específico
+    /// Remove listeners for a specific event
     pub fn remove_event_listeners(&self, event: &str) -> PyResult<()> {
         self.handlers.remove(event);
         Ok(())
     }
 
-    /// Remover un listener específico basado en un callback
+    /// Remove a specific listener based on a callback
     pub fn remove_listener_by_callback(&self, event: &str, callback: PyObject) -> PyResult<()> {
         if let Some(mut handlers) = self.handlers.get_mut(event) {
             handlers.retain(|handler| !handler.eq(&callback));

@@ -22,18 +22,18 @@ impl LazyComponent {
         }
     }
 
-    /// Carga recurso de forma asíncrona y establece `result` al completar.
+    /// Loads resource asynchronously and sets `result` when complete.
     pub async fn load_resource_async(&self, delay: u64) -> PyResult<()> {
         let is_loading_clone = Arc::clone(&self.is_loading);
         let result_clone = Arc::clone(&self.result);
 
-        // Cancelar tarea anterior si existe
+        // Cancel previous task if it exists
         let mut task_handle = self.task_handle.lock().await;
         if let Some(handle) = task_handle.take() {
             handle.abort();
         }
 
-        // Crear nueva tarea
+        // Create new task
         *task_handle = Some(tokio::spawn(async move {
             tokio::time::sleep(tokio::time::Duration::from_secs(delay)).await;
 
@@ -42,7 +42,7 @@ impl LazyComponent {
             }
 
             if let Ok(mut result) = result_clone.lock().await {
-                *result = Some("Recurso cargado exitosamente".to_string());
+                *result = Some("Resource loaded successfully".to_string());
             }
         }));
 
@@ -72,7 +72,7 @@ impl LazyComponent {
 
 impl Drop for LazyComponent {
     fn drop(&mut self) {
-        // Intentamos cancelar la tarea si el componente es destruido
+        // Try to cancel the task if the component is destroyed
         let task_handle = self.task_handle.clone();
         tokio::spawn(async move {
             if let Ok(mut handle) = task_handle.lock().await {

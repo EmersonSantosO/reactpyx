@@ -15,6 +15,7 @@ This documentation details all APIs available in ReactPyx.
 - [CLI](#cli)
 - [JSX Precompiler](#jsx-precompiler)
 - [Event System](#event-system)
+- [CSS Integration](#css-integration)
 
 ---
 
@@ -37,9 +38,12 @@ VNode(
 
 #### Methods
 
-| Method     | Description              |
-| ---------- | ------------------------ |
-| `render()` | Renders the node as HTML |
+| Method         | Description                   |
+| -------------- | ----------------------------- |
+| `render()`     | Renders the node as HTML      |
+| `clone_node()` | Creates a deep copy of a node |
+| `add_child()`  | Adds a child node             |
+| `add_prop()`   | Adds a property to the node   |
 
 ### Patch
 
@@ -153,7 +157,7 @@ else:
 | `init [--env]`             | Initializes project dependencies  |
 | `run`                      | Runs the development server       |
 | `build [--env] [--output]` | Builds the project for production |
-| `install <library>`        | Installs a library/plugin         |
+| `install <library>`        | Installs a CSS library with CDN   |
 
 ---
 
@@ -179,6 +183,37 @@ handler.trigger_event("click", [arg1, arg2], py)
 
 # Remove listeners
 handler.remove_event_listeners("click")
+```
+
+---
+
+## CSS Integration
+
+### CSS Helpers
+
+```python
+from src.css_helper import combine_classes, use_styles
+
+# Combine class names conditionally
+class_name = combine_classes("base", is_active and "active")
+
+# Create style objects
+styles = use_styles({
+    "container": "padding: 16px; color: blue;",
+    "title": "font-size: 24px; font-weight: bold;"
+})
+```
+
+### Framework Integration
+
+```python
+# Tailwind CSS
+from src.tailwind_helper import use_tailwind, tw_classes
+use_tailwind()
+
+# Bootstrap
+from src.bootstrap_helper import use_bootstrap, bs_button
+button = bs_button("primary", "lg", "Click me")
 ```
 
 ---

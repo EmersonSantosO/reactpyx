@@ -9,23 +9,23 @@ use std::sync::{Arc, Mutex};
 use tokio::fs;
 use tokio_stream::wrappers::ReadDirStream;
 
-/// Compila todos los archivos `.pyx` en el proyecto de forma asíncrona y en paralelo
+/// Compiles all `.pyx` files in the project asynchronously and in parallel
 pub async fn compile_all_pyx(
     project_root: &str,
     config_path: &str,
-    target_env: &str, // "node" o "python"
+    target_env: &str, // "node" or "python"
 ) -> Result<(Vec<String>, Vec<(String, String)>)> {
     let components_dir = Path::new(project_root).join("src").join("components");
 
     let components = detect_components_in_directory(&components_dir).await?;
-    info!("Iniciando compilación con componentes: {:?}", components);
+    info!("Starting compilation with components: {:?}", components);
 
     let compiled_files = Arc::new(Mutex::new(Vec::new()));
     let errors = Arc::new(Mutex::new(Vec::new()));
 
-    let concurrency_level = 8; // Nivel de concurrencia para controlar el procesamiento paralelo
+    let concurrency_level = 8; // Concurrency level to control parallel processing
 
-    // Procesa archivos en paralelo
+    // Process files in parallel
     let stream = ReadDirStream::new(fs::read_dir(&components_dir).await?);
     stream
         .for_each_concurrent(Some(concurrency_level), |entry| {
@@ -42,9 +42,9 @@ pub async fn compile_all_pyx(
                             Ok((python_code, css_code, js_code)) => {
                                 let mut compiled_files = compiled_files.lock().unwrap();
                                 compiled_files.push(file_path.to_string_lossy().to_string());
-                                info!("Compilado exitosamente: {:?}", file_path);
+                                info!("Successfully compiled: {:?}", file_path);
 
-                                // Escribir el código transformado en los directorios de compilación apropiados
+                                // Write transformed code to appropriate build directories
                                 if let Err(e) = write_transformed_files(
                                     project_root,
                                     &file_path,
@@ -55,7 +55,7 @@ pub async fn compile_all_pyx(
                                 .await
                                 {
                                     error!(
-                                        "Error al escribir archivos transformados para {:?}: {}",
+                                        "Error writing transformed files for {:?}: {}",
                                         file_path, e
                                     );
                                     let mut errors = errors.lock().unwrap();
@@ -69,7 +69,7 @@ pub async fn compile_all_pyx(
                                 let mut errors = errors.lock().unwrap();
                                 errors
                                     .push((file_path.to_string_lossy().to_string(), e.to_string()));
-                                error!("Error compilando {:?}: {}", file_path, e);
+                                error!("Error compiling {:?}: {}", file_path, e);
                             }
                         }
                     }
@@ -87,7 +87,7 @@ pub async fn compile_all_pyx(
     ))
 }
 
-/// Escribe archivos Python, CSS y JS transformados en los directorios de compilación
+/// Writes Python, CSS and JS transformed files to build directories
 async fn write_transformed_files(
     project_root: &str,
     file_path: &Path,
@@ -104,30 +104,30 @@ async fn write_transformed_files(
         ));
     fs::create_dir_all(output_path.parent().unwrap())
         .await
-        .context("Error al crear directorio de salida")?;
+        .context("Error creating output directory")?;
 
     fs::write(&output_path, python_code)
         .await
-        .context("Error al escribir código Python transformado")?;
+        .context("Error writing transformed Python code")?;
 
-    // Minificar y escribir CSS
+    // Minify and write CSS
     let css_output_path = Path::new(project_root).join("build").join("styles.css");
-    let minified_css = minify_css_code(css_code).context("Falló la minificación CSS")?;
+    let minified_css = minify_css_code(css_code).context("CSS minification failed")?;
     fs::write(css_output_path, minified_css)
         .await
-        .context("Error al escribir CSS minificado")?;
+        .context("Error writing minified CSS")?;
 
-    // Minificar y escribir JS
+    // Minify and write JS
     let js_output_path = Path::new(project_root).join("build").join("bundle.js");
-    let minified_js = minify_js_code(js_code).context("Falló la minificación JS")?;
+    let minified_js = minify_js_code(js_code).context("JS minification failed")?;
     fs::write(js_output_path, minified_js)
         .await
-        .context("Error al escribir JS minificado")?;
+        .context("Error writing minified JS")?;
 
     Ok(())
 }
 
-/// Compila un archivo `.pyx` a Python, CSS y JavaScript
+/// Compiles a `.pyx` file to Python, CSS and JavaScript
 pub async fn compile_pyx_file_to_python(
     file_path: &Path,
     _config_path: &str,
@@ -135,45 +135,45 @@ pub async fn compile_pyx_file_to_python(
 ) -> Result<(String, String, String)> {
     if !["node", "python"].contains(&target_env) {
         return Err(anyhow::anyhow!(
-            "Entorno de destino no soportado: {}",
+            "Unsupported target environment: {}",
             target_env
         ));
     }
 
     let source_code = fs::read_to_string(file_path)
         .await
-        .with_context(|| format!("Error al leer el archivo: {:?}", file_path))?;
+        .with_context(|| format!("Error reading file: {:?}", file_path))?;
 
     if source_code.trim().is_empty() {
-        return Err(anyhow::anyhow!("Archivo fuente vacío: {:?}", file_path));
+        return Err(anyhow::anyhow!("Empty source file: {:?}", file_path));
     }
 
-    // Transformar código `.pyx` a Python
+    // Transform `.pyx` code to Python
     let python_code: String = transform_pyx_to_python(&source_code).await?.to_string();
 
-    // Transformar estilos Python a CSS y lógica a JavaScript
+    // Transform Python styles to CSS and logic to JavaScript
     let (css_code, js_code) = transform_styles_and_js(&python_code, target_env)?;
 
     Ok((python_code, css_code, js_code))
 }
 
-/// Transformar estilos y lógica de Python a CSS y JavaScript
+/// Transform Python styles and logic to CSS and JavaScript
 fn transform_styles_and_js(python_code: &str, target_env: &str) -> Result<(String, String)> {
-    // Marcador de posición para la lógica de transformación de estilos a CSS
+    // Placeholder for logic to transform styles to CSS
     let css_code = format!(
-        "/* CSS generado desde estilos en Python */\n{}",
-        python_code // Reemplazar con lógica real de transformación CSS
+        "/* CSS generated from Python styles */\n{}",
+        python_code // Replace with actual CSS transformation logic
     );
 
-    // Transformar estilos y animaciones a JS
+    // Transform styles and animations to JS
     let js_code = match target_env {
         "node" => format!(
-            "// Lógica JS generada para entorno Node.js\n{}",
-            python_code // Reemplazar con lógica de transformación específica para Node.js
+            "// JS logic generated for Node.js environment\n{}",
+            python_code // Replace with Node.js specific transformation logic
         ),
         "python" => format!(
-            "// Lógica JS generada para entorno Python\n{}",
-            python_code // Reemplazar con lógica de transformación específica para Python
+            "// JS logic generated for Python environment\n{}",
+            python_code // Replace with Python specific transformation logic
         ),
         _ => unreachable!(),
     };
@@ -181,13 +181,13 @@ fn transform_styles_and_js(python_code: &str, target_env: &str) -> Result<(Strin
     Ok((css_code, js_code))
 }
 
-/// Detectar componentes en el directorio de componentes
+/// Detects components in the components directory
 async fn detect_components_in_directory(components_dir: &Path) -> Result<Vec<String>> {
     let mut components = Vec::new();
     let mut dir_entries = ReadDirStream::new(
         fs::read_dir(components_dir)
             .await
-            .with_context(|| format!("Error al leer el directorio {:?}", components_dir))?,
+            .with_context(|| format!("Error reading directory {:?}", components_dir))?,
     );
 
     while let Some(entry) = dir_entries.next().await {
@@ -209,30 +209,27 @@ async fn detect_components_in_directory(components_dir: &Path) -> Result<Vec<Str
     }
 
     if components.is_empty() {
-        warn!(
-            "No se encontraron componentes en el directorio: {:?}",
-            components_dir
-        );
+        warn!("No components found in directory: {:?}", components_dir);
     }
 
     Ok(components)
 }
 
-/// Detectar componentes dentro de un archivo
+/// Detects components within a file
 async fn detect_components_in_file(file_path: &Path) -> Result<Vec<String>> {
     let source = fs::read_to_string(file_path)
         .await
-        .with_context(|| format!("Error al leer el archivo {:?}", file_path))?;
+        .with_context(|| format!("Error reading file {:?}", file_path))?;
 
     if !source.is_ascii() {
         return Err(anyhow::anyhow!(
-            "El archivo contiene caracteres no ASCII: {:?}",
+            "File contains non-ASCII characters: {:?}",
             file_path
         ));
     }
 
-    let tree = syn::parse_file(&source)
-        .with_context(|| format!("Error al analizar el archivo: {:?}", file_path))?;
+    let tree =
+        syn::parse_file(&source).with_context(|| format!("Error parsing file: {:?}", file_path))?;
 
     let mut components = Vec::new();
     for item in &tree.items {
@@ -245,7 +242,7 @@ async fn detect_components_in_file(file_path: &Path) -> Result<Vec<String>> {
                 .unwrap_or(false)
             {
                 components.push(name.clone());
-                info!("Componente detectado: {}", name);
+                info!("Detected component: {}", name);
             }
         }
     }
@@ -253,18 +250,18 @@ async fn detect_components_in_file(file_path: &Path) -> Result<Vec<String>> {
     Ok(components)
 }
 
-/// Transformar código `.pyx` a Python
+/// Transforms `.pyx` code to Python
 #[cached(
     type = "cached::TimedCache<String, String>",
     create = "{ cached::TimedCache::with_lifespan_and_capacity(60, 1000) }",
     convert = r#"{ blake3::hash(pyx_code.as_bytes()).to_hex().to_string() }"#
 )]
 pub async fn transform_pyx_to_python(pyx_code: &str) -> Result<String> {
-    // Procesa la transformación de `.pyx` a Python
+    // Process the transformation from `.pyx` to Python
     let pyx_code_cloned = pyx_code.to_string();
     let python_code = tokio::task::spawn_blocking(move || {
         let syntax_tree =
-            syn::parse_file(&pyx_code_cloned).with_context(|| "Error al analizar código PyX")?;
+            syn::parse_file(&pyx_code_cloned).with_context(|| "Error parsing PyX code")?;
         Ok::<String, anyhow::Error>(prettyplease::unparse(&syntax_tree))
     })
     .await??;
@@ -272,22 +269,22 @@ pub async fn transform_pyx_to_python(pyx_code: &str) -> Result<String> {
     Ok(python_code)
 }
 
-/// Actualiza la aplicación recompilando componentes y aplicando los cambios necesarios.
+/// Updates the application by recompiling components and applying necessary changes.
 pub async fn update_application(
     module_name: &str,
     code: &str,
     entry_function: &str,
     project_root: String,
 ) -> Result<()> {
-    // Ejemplo: Realizar recompilación o actualizar estado de la aplicación
-    info!("Actualizando aplicación para módulo: {}", module_name);
+    // Example: Perform recompilation or update application state
+    info!("Updating application for module: {}", module_name);
 
-    // Opcionalmente, llamar a compile_all_pyx para recompilar todos los componentes
+    // Optionally, call compile_all_pyx to recompile all components
     compile_all_pyx(&project_root, "config.json", "python").await?;
 
-    // Ejemplo de registro para actualización exitosa
+    // Example log for successful update
     info!(
-        "Aplicación actualizada exitosamente para módulo: {}, función de entrada: {}",
+        "Application successfully updated for module: {}, entry function: {}",
         module_name, entry_function
     );
 

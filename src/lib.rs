@@ -41,6 +41,7 @@ fn reactpyx(py: Python, m: &PyModule) -> PyResult<()> {
     add_compiler_to_module(py, m)?;
     add_event_handlers_to_module(py, m)?;
     add_virtual_dom_to_module(py, m)?;
+    add_css_compiler_to_module(py, m)?; // Add the CSS compiler module
 
     info!("ReactPyx core and CLI successfully initialized.");
     Ok(())
@@ -218,10 +219,7 @@ async fn compile_pyx_to_js(
 
     let entry_path = Path::new(entry_file);
     if !entry_path.exists() {
-        return Err(anyhow::anyhow!(
-            "Input file does not exist: {}",
-            entry_file
-        ));
+        return Err(anyhow::anyhow!("Input file does not exist: {}", entry_file));
     }
 
     let code = tokio::fs::read_to_string(entry_file).await?;
@@ -246,6 +244,37 @@ fn run_cli_py() -> PyResult<()> {
             e.to_string(),
         ));
     }
+
+    Ok(())
+}
+
+/// Import and register the CSS compiler Python module
+fn import_css_compiler(py: Python) -> PyResult<&PyModule> {
+    let module_code = include_str!("python/css_compiler.py");
+    let module = PyModule::from_code(
+        py,
+        module_code,
+        "reactpyx.css_compiler",
+        "reactpyx.css_compiler",
+    )?;
+    Ok(module)
+}
+
+/// Add Python CSS compiler functions to the module
+fn add_css_compiler_to_module(py: Python, m: &PyModule) -> PyResult<()> {
+    let css_compiler = import_css_compiler(py)?;
+
+    // Import functions from css_compiler module
+    let extract_css = css_compiler.getattr("extract_css_from_pyx")?;
+    let compile_css = css_compiler.getattr("compile_css_modules")?;
+    let process_tailwind = css_compiler.getattr("process_tailwind_classes")?;
+    let integrate_framework = css_compiler.getattr("integrate_framework_styles")?;
+
+    // Add functions to the main module
+    m.add("extract_css_from_pyx", extract_css)?;
+    m.add("compile_css_modules", compile_css)?;
+    m.add("process_tailwind_classes", process_tailwind)?;
+    m.add("integrate_framework_styles", integrate_framework)?;
 
     Ok(())
 }

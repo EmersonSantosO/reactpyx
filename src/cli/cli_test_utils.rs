@@ -2,9 +2,9 @@ use anyhow::Result;
 use pyo3::prelude::*;
 use std::path::Path;
 
-// Función para testear la compatibilidad de bindings con Python
+// Function to test Python bindings compatibility
 pub fn test_python_bindings() -> Result<()> {
-    println!("Testeando bindings de Python...");
+    println!("Testing Python bindings...");
 
     Python::with_gil(|py| {
         let sys = py.import("sys")?;
@@ -12,45 +12,45 @@ pub fn test_python_bindings() -> Result<()> {
 
         println!("Python version: {}", version);
 
-        // Verificar que estamos en una versión compatible
+        // Verify that we're using a compatible version
         let ver_info = sys.getattr("version_info")?;
         let major: u8 = ver_info.getattr("major")?.extract()?;
         let minor: u8 = ver_info.getattr("minor")?.extract()?;
 
         if major == 3 && (8..=13).contains(&minor) {
-            println!("✓ Versión de Python compatible (3.8-3.13)");
+            println!("✓ Compatible Python version (3.8-3.13)");
         } else {
             println!(
-                "⚠️ Versión de Python no probada extensivamente: {}.{}",
+                "⚠️ Python version not extensively tested: {}.{}",
                 major, minor
             );
         }
 
-        println!("✓ Python bindings funcionando correctamente");
+        println!("✓ Python bindings working correctly");
 
-        // Probar la compatibilidad con la API de hooks
+        // Test hooks API compatibility
         let code = r#"
         from reactpyx import use_state, use_effect, use_effect_with_deps
         
-        # Test básico (no ejecuta realmente el código, solo importa)
-        print("✓ Todos los módulos importados correctamente")
+        # Basic test (not actually running code, just importing)
+        print("✓ All modules imported correctly")
         "#;
 
         py.run(code, None, None)?;
         Ok::<(), PyErr>(())
     })?;
 
-    println!("✓ Todos los tests pasaron");
+    println!("✓ All tests passed");
     Ok(())
 }
 
-// Verificar que los directorios de componentes existan
+// Verify that component directories exist
 pub fn ensure_component_dirs(project_root: &str) -> Result<()> {
     let components_dir = Path::new(project_root).join("src").join("components");
 
     if !components_dir.exists() {
         std::fs::create_dir_all(&components_dir)?;
-        println!("✓ Directorio de componentes creado: {:?}", components_dir);
+        println!("✓ Components directory created: {:?}", components_dir);
     }
 
     Ok(())
