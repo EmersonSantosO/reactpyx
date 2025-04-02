@@ -22,7 +22,7 @@ swc_core = { version = "0.90.8", features = [
 ] }
 
 # Code formatting and syntax tree analysis
-prettyplease = "0.2.16"
+prettyplease = "0.2.31"
 tree-sitter = "0.20.10"
 tree-sitter-python = "0.20.4"
 
