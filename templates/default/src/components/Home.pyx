@@ -1,6 +1,7 @@
 from reactpyx import use_state, use_effect, use_effect_with_deps
 
 def Home():
+    """Home page component with counter demonstration"""
     count, setCount = use_state("count", 0)
     message, setMessage = use_state("message", "")
     

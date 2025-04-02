@@ -1,6 +1,7 @@
 from reactpyx import use_state
 
 def Header(props):
+    """Header component that displays the navigation and user information"""
     user = props.get('user', 'Guest')
     
     return (

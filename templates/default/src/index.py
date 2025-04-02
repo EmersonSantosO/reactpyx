@@ -5,6 +5,7 @@ import importlib.util
 import logging
 import sys
 
+# Configure logging for component loading
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(sys.stdout)
@@ -14,6 +15,7 @@ logger.addHandler(handler)
 
 
 def load_all_components():
+    """Dynamically load all component modules from the components directory"""
     components = {}
     base_dir = os.path.dirname(__file__)
     components_dir = os.path.join(base_dir, "components")
@@ -35,12 +37,13 @@ def load_all_components():
                     component = getattr(module, component_name)
                     components[component_name] = component
                     logger.debug(
-                        f"Componente cargado: {component_name} desde {module_name}"
+                        f"Component loaded: {component_name} from {module_name}"
                     )
                 except Exception as e:
-                    logger.error(f"Error al cargar el componente '{module_name}': {e}")
+                    logger.error(f"Error loading component '{module_name}': {e}")
     return components
 
 
+# Load all components and make them available globally
 components = load_all_components()
 globals().update(components)

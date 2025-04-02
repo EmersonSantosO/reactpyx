@@ -19,6 +19,11 @@
 - **Hot Module Replacement** - Instant reloading during development
 - **Built with Rust** - High-performance core written in Rust
 - **Suspense & Async Components** - Elegant handling of asynchronous loading
+- **Python 3.13 Support** - Use the latest Python features:
+  - Type parameters with `type` keyword (PEP 695)
+  - Typed class decorator for rich class typings
+  - Enhanced f-strings with debug expressions
+  - Improved exception notes and error handling
 
 ## 📦 Installation
 

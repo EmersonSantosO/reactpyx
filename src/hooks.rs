@@ -273,6 +273,35 @@ pub fn use_reducer(
     })
 }
 
+/// Check if running on Python 3.13 or higher
+#[pyfunction]
+pub fn is_python_313_plus(py: Python) -> PyResult<bool> {
+    let sys = py.import("sys")?;
+    let version_info = sys.getattr("version_info")?;
+    let major: u8 = version_info.getattr("major")?.extract()?;
+    let minor: u8 = version_info.getattr("minor")?.extract()?;
+    
+    Ok(major >= 3 && minor >= 13)
+}
+
+/// Adds Python 3.13 compatibility for ReactPyx components
+#[pyfunction]
+pub fn add_py313_features(component: &PyAny) -> PyResult<()> {
+    Python::with_gil(|py| {
+        // Check if running on Python 3.13
+        if is_python_313_plus(py)? {
+            // Add Python 3.13 specific attributes
+            component.setattr("__py313_enhanced", true)?;
+            
+            // Add extra information that Python 3.13 supports
+            let sys = py.import("sys")?;
+            let version: String = sys.getattr("version")?.extract()?;
+            component.setattr("__python_version", version)?;
+        }
+        Ok(())
+    })
+}
+
 /// Add hooks to PyO3 module
 #[pymodule]
 fn hooks(m: &PyModule) -> PyResult<()> {
@@ -284,5 +313,7 @@ fn hooks(m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(use_reducer, m)?)?;
     m.add_function(wrap_pyfunction!(use_effect_with_deps, m)?)?;
     m.add_function(wrap_pyfunction!(use_effect, m)?)?;
+    m.add_function(wrap_pyfunction!(is_python_313_plus, m)?)?;
+    m.add_function(wrap_pyfunction!(add_py313_features, m)?)?;
     Ok(())
 }

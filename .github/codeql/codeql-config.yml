@@ -1,0 +1,13 @@
+name: "ReactPyx CodeQL Config"
+
+queries:
+  - uses: security-and-quality
+
+paths:
+  - src
+paths-ignore:
+  - "**/node_modules/**"
+  - "**/tests/**"
+  - "**/examples/**"
+  - "**/*.test.py"
+  - "**/*.test.rs"

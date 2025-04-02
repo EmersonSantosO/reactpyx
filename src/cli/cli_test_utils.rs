@@ -19,6 +19,34 @@ pub fn test_python_bindings() -> Result<()> {
 
         if major == 3 && (8..=13).contains(&minor) {
             println!("✓ Compatible Python version (3.8-3.13)");
+
+            // Check for Python 3.13 specific features if available
+            if minor >= 13 {
+                println!("✓ Python 3.13 detected - Testing new features");
+
+                // Test Python 3.13 specific features
+                let code = r#"
+                # Python 3.13 features test
+                
+                # Type parameter syntax (PEP 695)
+                type Point[T] = tuple[T, T]
+                
+                # Test the type parameter
+                p: Point[int] = (1, 2)
+                assert isinstance(p, tuple)
+                assert p[0] == 1 and p[1] == 2
+                
+                # Success if we reach here
+                print("✓ Python 3.13 type parameter syntax works correctly")
+                "#;
+
+                py.run(code, None, None)?;
+            } else {
+                println!(
+                    "ℹ Python {}.{} - Python 3.13 features not available",
+                    major, minor
+                );
+            }
         } else {
             println!(
                 "⚠️ Python version not extensively tested: {}.{}",

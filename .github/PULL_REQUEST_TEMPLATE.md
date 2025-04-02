@@ -1,32 +1,40 @@
-## Descripción de los Cambios
+## Description
 
-<!--- Describe tus cambios en detalle -->
+<!-- Please describe the changes you made -->
 
-## Tipo de Cambio
+## Related Issue(s)
 
-<!--- ¿Qué tipo de cambios introduce tu código? Marca con una "x" las opciones que correspondan -->
+<!-- Please link to any related issues here -->
 
-- [ ] Corrección de error (bugfix)
-- [ ] Nueva característica (feature)
-- [ ] Mejora de rendimiento
-- [ ] Refactorización de código (sin cambios funcionales)
-- [ ] Cambios en la documentación
-- [ ] Otros: <!-- Describe -->
+## Type of Change
 
-## ¿Cómo Has Probado Esto?
+<!-- Please check the relevant options -->
 
-<!--- Por favor describe las pruebas que has realizado -->
+- [ ] Bug fix (non-breaking change that fixes an issue)
+- [ ] New feature (non-breaking change that adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Documentation update
+- [ ] Performance improvement
+- [ ] Code refactoring without functional changes
 
-## Capturas de Pantalla (si aplica)
+## Testing
 
-## Checklist:
+<!-- Please describe the tests that you ran to verify your changes -->
 
-<!--- Marca con una "x" en las cajas que apliquen -->
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] Manual tests
 
-- [ ] Mi código sigue las guías de estilo del proyecto
-- [ ] He realizado una auto-revisión de mi propio código
-- [ ] He comentado mi código, especialmente en áreas difíciles de entender
-- [ ] He actualizado la documentación correspondiente
-- [ ] Mis cambios no generan nuevas advertencias
-- [ ] He añadido pruebas que demuestran que mi corrección es efectiva o que mi característica funciona
-- [ ] Las pruebas unitarias nuevas y existentes pasan con mis cambios
+## Checklist
+
+<!-- Please check all that apply -->
+
+- [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] All new and existing tests pass
+- [ ] I have updated the documentation accordingly
+- [ ] My code follows the project's coding standards
+- [ ] I have checked my code for potential issues using linters
+
+## Screenshots (if applicable)
+
+<!-- If your change includes visual elements, please include screenshots -->

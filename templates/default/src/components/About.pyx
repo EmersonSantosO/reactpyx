@@ -1,4 +1,5 @@
 def About():
+    """About section component that displays framework information"""
     return (
         <section>
             <h2>About</h2>

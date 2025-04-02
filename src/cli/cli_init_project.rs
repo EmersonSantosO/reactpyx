@@ -46,6 +46,19 @@ body {
 "#,
     ).context("Failed to create default CSS file")?;
 
+    // Check Python version
+    let python_version = Command::new("python")
+        .arg("--version")
+        .output()
+        .context("Could not detect Python version")?;
+    
+    let version_str = String::from_utf8_lossy(&python_version.stdout);
+    println!("{} {}", "Detected:".blue(), version_str.trim());
+
+    if !python_version.status.success() {
+        return Err(anyhow::anyhow!("Python is not properly installed"));
+    }
+
     // Check that pip is installed
     let pip_check = Command::new("pip")
         .arg("--version")
@@ -98,6 +111,44 @@ body {
     </body>
 </html>"#,
             ).context("Failed to create development index.html")?;
+
+            // Create Python 3.13 demonstration file
+            fs::write(
+                "src/py313_features.py",
+                r#"""
+Python 3.13 Features Demonstration for ReactPyx
+
+This file demonstrates some of the new features available in Python 3.13
+"""
+
+# Type parameter syntax with `type` keyword (PEP 695)
+type Point[T] = tuple[T, T]
+
+# Simplified typing.TypedDict with `@typing.typed` 
+from typing import typed
+
+@typed
+class User:
+    name: str
+    age: int
+    active: bool = True
+
+# New f-string features
+def format_demo():
+    user = User(name="Jane", age=30)
+    return f"{user.name=}, {user.age=}"
+
+# Using enhanced error messages
+def try_except_demo():
+    try:
+        # Python 3.13 provides more informative exception groups
+        result = 1 / 0
+    except Exception as e:
+        # Enhanced exception notes
+        e.add_note("This demonstrates Python 3.13's enhanced exception handling")
+        raise
+"#,
+            ).context("Failed to create Python 3.13 features demo file")?;
         }
         "production" => {
             // Only install production-necessary dependencies
@@ -176,6 +227,12 @@ def combine_classes(*args):
     println!("1. Add CSS via CDN: {}", "reactpyx Install tailwind".yellow());
     println!("2. Run the server: {}", "reactpyx Run".yellow());
     println!("3. Build for production: {}", "reactpyx Build --env python --output dist".yellow());
+    
+    println!("\n{}", "Python 3.13 Features:".cyan());
+    println!("- Type parameters using 'type' keyword");
+    println!("- Enhanced f-strings interpolation");
+    println!("- Improved exception handling");
+    println!("- See more in the src/py313_features.py demo file");
     
     Ok(())
 }

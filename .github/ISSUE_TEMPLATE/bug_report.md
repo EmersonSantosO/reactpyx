@@ -1,33 +1,39 @@
 ---
-name: Reporte de Error
-about: Crea un reporte para ayudarnos a mejorar
+name: Bug report
+about: Create a report to help us improve ReactPyx
 title: "[BUG] "
 labels: "bug"
 assignees: ""
 ---
 
-## Describe el Error
+## Bug Description
 
-Una descripción clara y concisa del error.
+A clear and concise description of what the bug is.
 
-## Pasos para Reproducirlo
+## To Reproduce
 
-Pasos para reproducir el comportamiento:
+Steps to reproduce the behavior:
 
-1. Ir a '...'
-2. Hacer clic en '....'
-3. Ver el error
+1. Create component with '...'
+2. Add the following code '...'
+3. Run the command '...'
+4. See the error
 
-## Comportamiento Esperado
+## Expected Behavior
 
-Una descripción clara y concisa de lo que esperabas que sucediera.
+A clear and concise description of what you expected to happen.
 
-## Capturas de Pantalla
+## Screenshots
 
-Si aplica, agrega capturas de pantalla para explicar tu problema.
+If applicable, add screenshots to help explain your problem.
 
-## Entorno
+## Environment
 
-- Sistema operativo: [e.j. Windows 10]
-- Versión de Python: [e.j. 3.11.2]
-- Versión de ReactPyx: [e.j. 0.5.1]
+- ReactPyx version: [e.g. 0.5.1]
+- Python version: [e.g. 3.10.0]
+- Rust version: [e.g. 1.75.0]
+- OS: [e.g. Windows 10, macOS 12.0, Ubuntu 22.04]
+
+## Additional Context
+
+Add any other context about the problem here.

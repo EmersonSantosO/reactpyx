@@ -1,23 +1,36 @@
 ---
-name: Solicitud de Característica
-about: Sugiere una idea para este proyecto
+name: Feature request
+about: Suggest an idea for ReactPyx
 title: "[FEATURE] "
 labels: "enhancement"
 assignees: ""
 ---
 
-## ¿Tu solicitud de característica está relacionada con un problema? Por favor, descríbelo.
+## Is your feature request related to a problem? Please describe.
 
-Una descripción clara y concisa del problema. Ej. Siempre me frustra cuando [...]
+A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
 
-## Describe la solución que te gustaría
+## Describe the solution you'd like
 
-Una descripción clara y concisa de lo que quieres que suceda.
+A clear and concise description of what you want to happen.
 
-## Describe alternativas que has considerado
+## Describe alternatives you've considered
 
-Una descripción clara y concisa de cualquier solución o característica alternativa que hayas considerado.
+A clear and concise description of any alternative solutions or features you've considered.
 
-## Contexto adicional
+## Example code
 
-Agrega cualquier otro contexto o capturas de pantalla acerca de tu solicitud.
+If applicable, provide sample code that demonstrates how your feature might work:
+
+```python
+# Example of how the proposed feature might be used
+from reactpyx import new_feature
+
+def MyComponent(props):
+    result = new_feature()
+    return <div>{result}</div>
+```
+
+## Additional context
+
+Add any other context or screenshots about the feature request here.
