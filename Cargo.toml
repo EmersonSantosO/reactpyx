@@ -56,7 +56,7 @@ indicatif = "0.17.7"
 
 # Other utilities and supporting libraries
 html5ever = "0.26.0"
-markup5ever_rcdom = "0.2.0"
+markup5ever_rcdom = "0.3.0"
 brotli = "3.4.0"
 
 # Updated PyO3 for Python 3.13 support
