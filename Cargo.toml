@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 # Asynchronous programming and concurrency
 tokio = { version = "1.35.1", features = ["full", "fs"] }
 tokio-stream = { version = "0.1.15", features = ["fs"] }
-tokio-util = "0.7.10"
+tokio-util = "0.7.15"
 
 # SWC core for parsing and code generation
 swc_core = { version = "0.90.8", features = [
