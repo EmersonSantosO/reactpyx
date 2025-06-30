@@ -31,7 +31,7 @@ serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 
 # CSS minification and processing
-lightningcss = "1.0.0-alpha.50"
+lightningcss = "1.0.0-alpha.67"
 minifier = "0.3.0"
 
 # Concurrent processing tools and threading
