@@ -17,32 +17,29 @@ pub fn create_project(project_name: &str) -> Result<()> {
 
     let project_root = Path::new(project_name);
 
-    // --- Create directories ---
-    fs::create_dir_all(project_root.join("src").join("components"))
-        .context("Failed to create src/components directory")?;
-    fs::create_dir_all(project_root.join("src").join("styles"))
-        .context("Failed to create src/styles directory")?;
-    fs::create_dir_all(project_root.join("public").join("static"))
-        .context("Failed to create public/static directory")?;
+    // --- Create minimal directories (Vite-like template) ---
+    fs::create_dir_all(project_root.join("src"))
+        .context("Failed to create src directory")?;
+    fs::create_dir_all(project_root.join("public"))
+        .context("Failed to create public directory")?;
     fs::create_dir_all(project_root.join("templates"))
-        .context("Failed to create templates directory")?; // <-- VERIFICADO
+        .context("Failed to create templates directory")?;
 
-    // --- Create .pyx files ---
+    // --- Create minimal .pyx entry file ---
     let main_pyx_content = r#"# src/main.pyx - Entry point
 from App import App
 
+
 def MainApp():
-    # This function should return the root component instance
     return App()
 "#;
     fs::write(project_root.join("src/main.pyx"), main_pyx_content)
         .context("Failed to write src/main.pyx")?;
 
+    // --- Create minimal App component ---
     let app_pyx_content = r#"# src/App.pyx
-from reactpyx import use_state, use_effect
-# Asegúrate que la ruta de importación sea correcta según tu estructura
-from components.Header import Header
-from components.StyledButton import StyledButton
+from reactpyx import use_state
+
 
 def App():
     count, set_count = use_state("app", "count", 0)
@@ -50,169 +47,18 @@ def App():
     def increment():
         set_count.set(count + 1)
 
-    # Example effect hook
-    use_effect(lambda: print("App component rendered or updated"))
-
     return (
-        <div className="container">
-            <Header title="Welcome to ReactPyx" subtitle="Built with Python, Rust, and JSX-like syntax!" />
-            <main>
-                <h2>Interactive Counter</h2>
-                <p>Current count: {count}</p>
-                <StyledButton onClick={increment} text="Click Me!" variant="primary" />
-            </main>
-            <footer className="footer">
-                <p>Powered by ReactPyx</p>
-            </footer>
-            {/* Example of scoped styles within a component */}
-            <style>
-              .container {{ max-width: 960px; margin: 2rem auto; padding: 0 1rem; font-family: sans-serif; }}
-              main {{ background-color: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }}
-              h2 {{ color: #333; margin-top: 0; }}
-              .footer {{ margin-top: 2rem; border-top: 1px solid #e2e8f0; padding-top: 1rem; color: #a0aec0; text-align: center; font-size: 0.9em; }}
-            </style>
-        </div>
+        <main style="font-family: system-ui; padding: 2rem;">
+            <h1>ReactPyx + Python</h1>
+            <p>Vite-like minimal starter.</p>
+            <button onClick={increment}>
+                count is {count}
+            </button>
+        </main>
     )
 "#;
     fs::write(project_root.join("src/App.pyx"), app_pyx_content)
         .context("Failed to write src/App.pyx")?;
-
-    let header_pyx_content = r#"# src/components/Header.pyx
-
-def Header(props):
-    title = props.get('title', 'Default Title')
-    subtitle = props.get('subtitle', '')
-
-    return (
-        <header className="header">
-            <h1>{title}</h1>
-            {subtitle and <p>{subtitle}</p>}
-            {/* Scoped styles for the header */}
-            <style>
-              .header {{ margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0; }}
-              .header h1 {{ margin: 0 0 0.25rem 0; color: #2d3748; font-size: 2em; }}
-              .header p {{ margin: 0; color: #718096; font-size: 1.1em; }}
-            </style>
-        </header>
-    )
-"#;
-    fs::write(
-        project_root.join("src/components/Header.pyx"),
-        header_pyx_content,
-    )
-    .context("Failed to write src/components/Header.pyx")?;
-
-    let button_pyx_content = r#"# src/components/StyledButton.pyx
-from reactpyx import use_state
-
-# Simple helper if css_helper.py is not generated/imported
-def combine_classes(*args):
-    return " ".join(filter(None, args))
-
-def StyledButton(props):
-    # State to track hover (optional, for visual feedback)
-    hover, set_hover = use_state("styled_button", "hover", False)
-
-    # Get props with defaults
-    text = props.get('text', 'Default Button')
-    variant = props.get('variant', 'secondary') # Default to secondary
-    onClick = props.get('onClick', lambda *args: None) # Default no-op function
-
-    # Event handlers need to potentially accept an event argument from JS frontend
-    def handle_mouse_enter(event=None):
-        set_hover.set(True)
-
-    def handle_mouse_leave(event=None):
-        set_hover.set(False)
-
-    # Combine CSS classes dynamically
-    button_class = combine_classes(
-        "button", # Base class
-        f"button-{variant}", # Variant class (e.g., button-primary)
-        hover and "button-hover" # Hover class
-    )
-
-    return (
-        # Assign classes and event handlers
-        <button
-            className={button_class}
-            onClick={onClick}
-            onMouseEnter={handle_mouse_enter}
-            onMouseLeave={handle_mouse_leave}
-        >
-            {text}
-        </button>
-        # Note: Scoped styles for the button itself are better placed in src/styles/main.css
-        # or a dedicated button.css for better organization, but could be added here too.
-    )
-"#;
-    fs::write(
-        project_root.join("src/components/StyledButton.pyx"),
-        button_pyx_content,
-    )
-    .context("Failed to write src/components/StyledButton.pyx")?;
-
-    // --- Create base CSS file ---
-    let css_content = r#"/* src/styles/main.css - Base styles for the project */
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  margin: 0;
-  padding: 0;
-  background-color: #f8fafc; /* Light grey background */
-  color: #1a202c; /* Dark text */
-  line-height: 1.6;
-}
-
-/* Basic button styles - applied via className="button button-primary" etc */
-.button {
-  display: inline-block;
-  padding: 0.6rem 1.2rem;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 500;
-  text-align: center;
-  text-decoration: none;
-  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.button-primary {
-  background-color: #4299e1; /* Blue */
-  color: white;
-}
-
-.button-secondary {
-  background-color: #e2e8f0; /* Light Gray */
-  color: #4a5568; /* Dark Gray */
-  border: 1px solid #cbd5e0;
-}
-
-/* Hover effects */
-.button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.button-primary:hover {
-  background-color: #3182ce; /* Darker Blue */
-}
-
-.button-secondary:hover {
-  background-color: #cbd5e0; /* Darker Gray */
-}
-
-/* Add other global styles or utility classes here */
-.container { /* Example */
-  max-width: 960px; margin: 2rem auto; padding: 0 1rem;
-}
-
-```
-
-"#;
-    fs::write(project_root.join("src/styles/main.css"), css_content)
-        .context("Failed to write src/styles/main.css")?;
 
     // --- Create config file ---
     let config_content = r#"{
@@ -227,37 +73,44 @@ body {
     fs::write(project_root.join("pyx.config.json"), config_content)
         .context("Failed to write pyx.config.json")?;
 
-    // --- Create main.py (using Jinja2) ---
-    // (Content verified from previous step)
-    let server_content = r#"# main.py - Servidor FastAPI para la aplicación ReactPyx
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse, FileResponse
+    // --- Create minimal main.py (FastAPI + ReactPyx runtime) ---
+    let server_content = r#"# main.py - Minimal FastAPI server for ReactPyx app
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import os
-import sys
 
-app = FastAPI(title="ReactPyxApp", version="0.1.0")
+import reactpyx
+
+
+app = FastAPI()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# sys.path.append(BASE_DIR) # Solo si necesitas importar desde aquí
 
 templates_dir = os.path.join(BASE_DIR, "templates")
-if not os.path.isdir(templates_dir):
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    templates_dir = os.path.join(script_dir, "templates")
-    if not os.path.isdir(templates_dir):
-        print(f"FATAL: Directory 'templates' not found near {script_dir}", file=sys.stderr)
-        sys.exit(1)
 templates = Jinja2Templates(directory=templates_dir)
 
-static_dir = os.path.join(BASE_DIR, "build")
+static_dir = os.path.join(BASE_DIR, "public", "static")
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-favicon_path = os.path.join(BASE_DIR, "public", "favicon.ico")
-@app.get("/favicon.ico", include_in_schema=False)
-async def favicon():
+
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    return templates.TemplateResponse("index.jinja2", {"request": request})
+
+
+@app.websocket("/_reactpyx/ws")
+async def reactpyx_ws(websocket):
+    await reactpyx.server.handle_websocket(websocket)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+"#;
     return FileResponse(favicon_path) if os.path.exists(favicon_path) else HTMLResponse(status_code=204)
 
 @app.get("/{full_path:path}", response_class=HTMLResponse)
