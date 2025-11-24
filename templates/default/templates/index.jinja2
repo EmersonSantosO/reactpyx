@@ -1,0 +1,26 @@
+{% extends "base.jinja2" %}
+
+{# Puedes sobrescribir bloques si es necesario #}
+
+{% block head_meta %}
+    {# Meta tags específicos para la página de inicio si los necesitas #}
+    {{ super() }} {# Mantiene los metas de la base y añade/sobrescribe #}
+    <meta name="description" content="Página de inicio de la aplicación ReactPyx.">
+{% endblock head_meta %}
+
+{% block content %}
+    {# El contenido de la base (`<div id="app">`) es suficiente, #}
+    {# pero podrías añadir algo aquí si necesitaras HTML estático *dentro* #}
+    {# del div#app antes de que ReactPyx cargue. #}
+    {# Generalmente, solo necesitas incluir el contenido del bloque padre. #}
+    {{ super() }} {# Incluye el bloque 'content' de la base (el div#app con el loader) #}
+{% endblock content %}
+
+{# Puedes añadir scripts específicos para esta página aquí si es necesario #}
+{% block body_scripts %}
+    {# Por ejemplo:
+    <script>
+        console.log("Página de índice cargada.");
+    </script>
+     #}
+{% endblock body_scripts %}

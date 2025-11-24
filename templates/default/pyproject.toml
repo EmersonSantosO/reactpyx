@@ -1,4 +1,4 @@
-# default/pyproject.toml
+# templates/default/pyproject.toml
 
 [build-system]
 requires = ["setuptools", "wheel"]
@@ -9,5 +9,20 @@ name = "reactpyx_project"
 version = "0.1.0"
 description = "Project created with ReactPyx"
 authors = [{ name = "Your Name", email = "your.email@example.com" }]
-dependencies = ["reactpyx>=0.4.0", "fastapi>=0.115.0", "uvicorn>=0.30.6"]
-python = ">=3.8"
+dependencies = [
+    "reactpyx>=0.5.1",           # Asegúrate que coincida con tu versión
+    "fastapi>=0.100.0",          # Versiones razonables
+    "uvicorn[standard]>=0.20.0",
+    "Jinja2>=3.1.0",             # <-- LÍNEA AÑADIDA
+]
+requires-python = ">=3.8" # Corregido desde tu archivo original
+
+[project.optional-dependencies]
+dev = [
+    # Puedes añadir dependencias de desarrollo aquí si lo deseas
+    # "pytest>=7.0",
+]
+
+# Añadir configuración de herramienta si es necesario, por ejemplo para linters
+# [tool.black]
+# line-length = 88

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {# Usa una variable del contexto o un valor por defecto para el título #}
+    <title>{{ page_title | default('ReactPyx App') }}</title>
+
+    {# Bloque para añadir metatags específicos de página #}
+    {% block head_meta %}
+        <meta name="description" content="Una aplicación web construida con ReactPyx.">
+        <meta name="keywords" content="ReactPyx, Python, JSX, Framework, Web">
+        <meta name="author" content="Tu Nombre">
+    {% endblock head_meta %}
+
+    {# Enlaza el CSS usando url_for para manejar correctamente la ruta estática #}
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+
+    {# Bloque para añadir CSS o scripts adicionales en el head #}
+    {% block head_extra %}{% endblock head_extra %}
+
+    {# Ejemplo: Añadir enlaces CDN (descomentar si se usa 'reactpyx install') #}
+    {# {% if framework_css_cdn %}
+        <link href="{{ framework_css_cdn }}" rel="stylesheet">
+    {% endif %} #}
+</head>
+<body>
+
+    {# Bloque principal de contenido donde ReactPyx montará la app #}
+    <div id="app">
+        {% block content %}
+            <!-- El contenido renderizado por ReactPyx se insertará aquí -->
+            <!-- Puedes poner un spinner de carga inicial aquí si quieres -->
+            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; color: #555;">
+                Cargando aplicación...
+            </div>
+        {% endblock content %}
+    </div>
+
+    {# Incluir el JavaScript generado por ReactPyx #}
+    <script src="{{ url_for('static', path='app.js') }}" async></script>
+
+    {# Bloque para añadir scripts adicionales al final del body #}
+    {% block body_scripts %}{% endblock body_scripts %}
+
+    {# Ejemplo: Añadir script CDN (descomentar si se usa 'reactpyx install') #}
+    {# {% if framework_js_cdn %}
+        <script src="{{ framework_js_cdn }}" async></script>
+    {% endif %} #}
+
+</body>
+</html>
