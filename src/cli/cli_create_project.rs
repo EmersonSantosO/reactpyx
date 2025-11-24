@@ -2,8 +2,8 @@
 use anyhow::{Context, Result};
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
-use std::{fs, path::Path};
 use std::time::Duration;
+use std::{fs, path::Path};
 
 pub fn create_project(project_name: &str) -> Result<()> {
     let pb = ProgressBar::new_spinner();
@@ -96,8 +96,11 @@ def Header(props):
         </header>
     )
 "#;
-    fs::write(project_root.join("src/components/Header.pyx"), header_pyx_content)
-        .context("Failed to write src/components/Header.pyx")?;
+    fs::write(
+        project_root.join("src/components/Header.pyx"),
+        header_pyx_content,
+    )
+    .context("Failed to write src/components/Header.pyx")?;
 
     let button_pyx_content = r#"# src/components/StyledButton.pyx
 from reactpyx import use_state
@@ -143,8 +146,11 @@ def StyledButton(props):
         # or a dedicated button.css for better organization, but could be added here too.
     )
 "#;
-    fs::write(project_root.join("src/components/StyledButton.pyx"), button_pyx_content)
-        .context("Failed to write src/components/StyledButton.pyx")?;
+    fs::write(
+        project_root.join("src/components/StyledButton.pyx"),
+        button_pyx_content,
+    )
+    .context("Failed to write src/components/StyledButton.pyx")?;
 
     // --- Create base CSS file ---
     let css_content = r#"/* src/styles/main.css - Base styles for the project */
@@ -274,14 +280,21 @@ async def serve_spa(request: Request, full_path: str):
         # Render the app
         app_instance = app_main.MainApp()
         app_html = app_instance.render()
+        
+        # Serialize state for hydration
+        import json
+        app_state = app_instance.to_dict()
+        app_state_json = json.dumps(app_state)
     except Exception as e:
         print(f"SSR Error: {e}")
         app_html = f"<!-- SSR Error: {e} -->"
+        app_state_json = "{}"
 
     context = {
         "request": request,
         "page_title": "ReactPyx Application",
-        "content": app_html
+        "content": app_html,
+        "initial_state": app_state_json
     }
     return templates.TemplateResponse("index.jinja2", context)
 
@@ -300,8 +313,7 @@ if __name__ == "__main__":
     host = os.environ.get("HOST", "0.0.0.0")
     uvicorn.run("main:app", host=host, port=port, reload=True)
 "#;
-    fs::write(project_root.join("main.py"), server_content)
-        .context("Failed to write main.py")?;
+    fs::write(project_root.join("main.py"), server_content).context("Failed to write main.py")?;
 
     // --- Create Jinja2 templates ---
     // (base.jinja2 content verified from previous step)
@@ -324,12 +336,18 @@ if __name__ == "__main__":
         {% block content %}
         {% endblock content %}
     </div>
+    <script>
+        window.__INITIAL_STATE__ = {{ initial_state | safe }};
+    </script>
     <script src="{{ url_for('static', path='bundle.js') }}"></script>
 </body>
 </html>
 "#;
-    fs::write(project_root.join("templates/base.jinja2"), base_template_content)
-        .context("Failed to write templates/base.jinja2")?;
+    fs::write(
+        project_root.join("templates/base.jinja2"),
+        base_template_content,
+    )
+    .context("Failed to write templates/base.jinja2")?;
 
     // (index.jinja2 content verified from previous step)
     let index_template_content = r#"{% extends "base.jinja2" %}
@@ -344,8 +362,11 @@ if __name__ == "__main__":
     {{ super() }}
 {% endblock content %}
 "#;
-    fs::write(project_root.join("templates/index.jinja2"), index_template_content)
-        .context("Failed to write templates/index.jinja2")?;
+    fs::write(
+        project_root.join("templates/index.jinja2"),
+        index_template_content,
+    )
+    .context("Failed to write templates/index.jinja2")?;
 
     // (404.jinja2 content verified from previous step)
     let fourohfour_template_content = r#"{% extends "base.jinja2" %}
@@ -371,8 +392,11 @@ if __name__ == "__main__":
 {# No incluir el script app.js en la página 404 #}
 {% block body_scripts %}{% endblock body_scripts %}
 "#;
-    fs::write(project_root.join("templates/404.jinja2"), fourohfour_template_content)
-        .context("Failed to write templates/404.jinja2")?;
+    fs::write(
+        project_root.join("templates/404.jinja2"),
+        fourohfour_template_content,
+    )
+    .context("Failed to write templates/404.jinja2")?;
 
     // --- Create css_helper.py ---
     // (Content verified from previous step)
@@ -405,14 +429,27 @@ def use_styles(styles_dict):
         "To get started:".cyan()
     );
     println!("  1. {}", format!("cd {}", project_name).yellow());
-    println!("  2. {}", "Consider creating a virtual environment: python -m venv venv && source venv/bin/activate".dimmed());
-    println!("  3. {}", "Install dependencies: pip install -e .".yellow().bold()); // Assuming pyproject.toml is set up for editable install
-    // println!("  3. {}", "reactpyx init --env development (If needed)".yellow()); // Comentado si 'init' no es necesario ahora
-    println!("  4. {}", "Run the development server: reactpyx run".yellow().bold());
+    println!(
+        "  2. {}",
+        "Consider creating a virtual environment: python -m venv venv && source venv/bin/activate"
+            .dimmed()
+    );
+    println!(
+        "  3. {}",
+        "Install dependencies: pip install -e .".yellow().bold()
+    ); // Assuming pyproject.toml is set up for editable install
+       // println!("  3. {}", "reactpyx init --env development (If needed)".yellow()); // Comentado si 'init' no es necesario ahora
+    println!(
+        "  4. {}",
+        "Run the development server: reactpyx run".yellow().bold()
+    );
     println!("\n{}", "CSS Frameworks:".cyan());
     println!("  - {}", "reactpyx install tailwind".yellow());
     println!("  - {}", "reactpyx install bootstrap".yellow());
-    println!("{}", "  (Remember to add CDN links to templates/base.jinja2)".dimmed());
+    println!(
+        "{}",
+        "  (Remember to add CDN links to templates/base.jinja2)".dimmed()
+    );
 
     Ok(())
 }

@@ -1,16 +1,19 @@
 use std::io::{self};
+use swc_core::common::sync::Lrc;
 use swc_core::common::{FileName, SourceMap};
 use swc_core::ecma::ast::EsVersion;
 use swc_core::ecma::codegen::text_writer::JsWriter;
 use swc_core::ecma::codegen::Emitter;
 use swc_core::ecma::parser::{lexer::Lexer, EsSyntax, Parser, StringInput, Syntax};
+use pyo3::prelude::*;
 
 /// Minifies JavaScript code using `swc_core`.
+#[pyfunction]
 pub fn minify_js_code(js: &str) -> Result<String, io::Error> {
-    let cm = SourceMap::default();
+    let cm: Lrc<SourceMap> = Default::default();
 
     // Create a source file for the compiler
-    let fm = cm.new_source_file(FileName::Custom("input.js".into()), js.into());
+    let fm = cm.new_source_file(Lrc::new(FileName::Custom("input.js".into())), js.to_string());
 
     // Use a lexer to parse JavaScript
     let lexer = Lexer::new(

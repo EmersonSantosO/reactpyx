@@ -1,0 +1,35 @@
+{
+    "name": "reactpyx",
+    "displayName": "ReactPyx",
+    "description": "Language support for ReactPyx (.pyx) - Python with JSX",
+    "version": "0.0.1",
+    "publisher": "reactpyx",
+    "engines": {
+        "vscode": "^1.75.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "reactpyx",
+                "aliases": [
+                    "ReactPyx",
+                    "reactpyx"
+                ],
+                "extensions": [
+                    ".pyx"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "reactpyx",
+                "scopeName": "source.reactpyx",
+                "path": "./syntaxes/reactpyx.tmLanguage.json"
+            }
+        ]
+    }
+}

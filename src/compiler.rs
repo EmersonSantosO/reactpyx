@@ -53,8 +53,10 @@ pub async fn compile_all_pyx(
             async move {
                 match compile_pyx_file_to_python(&file_path, &config_path, &target_env).await {
                     Ok((python_code, css_code, js_code)) => {
-                        let mut compiled_files = compiled_files.lock().unwrap();
-                        compiled_files.push(file_path.to_string_lossy().to_string());
+                        {
+                            let mut compiled_files = compiled_files.lock().unwrap();
+                            compiled_files.push(file_path.to_string_lossy().to_string());
+                        }
                         info!("Successfully compiled: {:?}", file_path);
 
                         // Write transformed code to appropriate build directories
@@ -194,12 +196,16 @@ fn transform_styles_and_js(python_code: &str, target_env: &str) -> Result<(Strin
     // cleaned_python = style_regex.replace_all(python_code, "").to_string();
 
     // Transform styles and animations to JS
+    let runtime_code = include_str!("runtime/client.js");
+
     let js_code = match target_env {
         "node" => format!(
-            "// JS logic generated for Node.js environment\nconsole.log('Hydration not implemented yet');",
+            "// JS logic generated for Node.js environment\n{}\n",
+            runtime_code
         ),
         "python" => format!(
-            "// JS logic generated for Python environment\nconsole.log('Hydration not implemented yet');",
+            "// JS logic generated for Python environment\n{}\n",
+            runtime_code
         ),
         _ => unreachable!(),
     };

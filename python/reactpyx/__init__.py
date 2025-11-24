@@ -11,31 +11,39 @@ from .hooks import (
     use_effect_with_deps,
     use_context,
     use_reducer,
-    use_lazy_state
+    use_lazy_state,
 )
 
 # Importar las clases principales del framework
-from reactpyx._core import (  
-    VNode,
-    Patch,
-    EventHandler,
-    LazyComponent,
-    SuspenseComponent
-)
+try:
+    from ._core import VNode, Patch, EventHandler, LazyComponent, SuspenseComponent
+except ImportError:
+    import _core
+
+    VNode = _core.VNode
+    Patch = _core.Patch
+    EventHandler = _core.EventHandler
+    LazyComponent = _core.LazyComponent
+    SuspenseComponent = _core.SuspenseComponent
+
+from .server import ConnectionManager
+from .runtime import set_root
 
 __all__ = [
     # Hooks
-    'use_state',
-    'use_effect',
-    'use_effect_with_deps',
-    'use_context',
-    'use_reducer',
-    'use_lazy_state',
-    
+    "use_state",
+    "use_effect",
+    "use_effect_with_deps",
+    "use_context",
+    "use_reducer",
+    "use_lazy_state",
     # Clases
-    'VNode',
-    'Patch',
-    'EventHandler',
-    'LazyComponent',
-    'SuspenseComponent',
+    "VNode",
+    "Patch",
+    "EventHandler",
+    "LazyComponent",
+    "SuspenseComponent",
+    # Server
+    "ConnectionManager",
+    "set_root",
 ]

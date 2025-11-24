@@ -1,0 +1,50 @@
+{
+    "scopeName": "source.reactpyx",
+    "patterns": [
+        {
+            "include": "source.python"
+        },
+        {
+            "begin": "(<)([a-zA-Z0-9_\\.]+)",
+            "beginCaptures": {
+                "1": {
+                    "name": "punctuation.definition.tag.begin.reactpyx"
+                },
+                "2": {
+                    "name": "entity.name.tag.reactpyx"
+                }
+            },
+            "end": "(/?>)",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.definition.tag.end.reactpyx"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "text.html.basic#attribute"
+                },
+                {
+                    "include": "source.reactpyx"
+                }
+            ]
+        },
+        {
+            "begin": "(</)([a-zA-Z0-9_\\.]+)",
+            "beginCaptures": {
+                "1": {
+                    "name": "punctuation.definition.tag.begin.reactpyx"
+                },
+                "2": {
+                    "name": "entity.name.tag.reactpyx"
+                }
+            },
+            "end": "(>)",
+            "endCaptures": {
+                "1": {
+                    "name": "punctuation.definition.tag.end.reactpyx"
+                }
+            }
+        }
+    ]
+}

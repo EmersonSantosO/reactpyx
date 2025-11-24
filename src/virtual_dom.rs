@@ -9,7 +9,7 @@ pub struct VNode {
     #[pyo3(get, set)]
     pub tag: String,
     #[pyo3(get, set)]
-    pub props: HashMap<String, PyObject>,
+    pub props: HashMap<String, Py<PyAny>>,
     #[pyo3(get, set)]
     pub children: Vec<Py<VNode>>,
     #[pyo3(get, set)]
@@ -26,7 +26,7 @@ impl VNode {
     #[pyo3(signature = (tag, props, children, is_critical, cache_duration_secs, key=None))]
     fn new(
         tag: String,
-        props: HashMap<String, PyObject>,
+        props: HashMap<String, Py<PyAny>>,
         children: Vec<Py<VNode>>,
         is_critical: bool,
         cache_duration_secs: u64,
@@ -48,9 +48,17 @@ impl VNode {
 
         // Add attributes
         for (key, value) in &self.props {
-            // Skip event handlers (starting with "on") for SSR string generation
-            // or handle them specially if needed.
+            // Handle event handlers for SSR
             if key.starts_with("on") {
+                let event_name = key[2..].to_lowercase();
+
+                // Register handler in Python registry
+                let registry = py.import("reactpyx.registry")?;
+                let handler_id: String = registry
+                    .call_method1("register_handler", (value,))?
+                    .extract()?;
+
+                html.push_str(&format!(" data-on-{}=\"{}\"", event_name, handler_id));
                 continue;
             }
 
@@ -59,11 +67,12 @@ impl VNode {
                 s
             } else {
                 // If not a string, try to convert using str()
-                value.as_ref(py).str()?.to_string()
+                value.bind(py).str()?.to_string()
             };
 
             html.push_str(&format!(" {}=\"{}\"", key, value_str));
         }
+
         html.push('>');
 
         // Add children
@@ -79,6 +88,47 @@ impl VNode {
         Ok(html)
     }
 
+    /// Serializes the node to a Python dictionary (for JSON serialization)
+    pub fn to_dict(&self, py: Python) -> PyResult<Py<PyAny>> {
+        let dict = pyo3::types::PyDict::new(py);
+        dict.set_item("tag", &self.tag)?;
+
+        let props_dict = pyo3::types::PyDict::new(py);
+        for (key, value) in &self.props {
+            // For props, we need to be careful about what we send to the client
+            // Event handlers are just names/flags here
+            if key.starts_with("on") {
+                props_dict.set_item(key, true)?;
+            } else {
+                // Try to keep basic types, fallback to string
+                if let Ok(s) = value.extract::<String>(py) {
+                    props_dict.set_item(key, s)?;
+                } else if let Ok(i) = value.extract::<i64>(py) {
+                    props_dict.set_item(key, i)?;
+                } else if let Ok(b) = value.extract::<bool>(py) {
+                    props_dict.set_item(key, b)?;
+                } else {
+                    let s = value.bind(py).str()?.to_string();
+                    props_dict.set_item(key, s)?;
+                }
+            }
+        }
+        dict.set_item("props", props_dict)?;
+
+        let children_list = pyo3::types::PyList::empty(py);
+        for child in &self.children {
+            let child_node = child.borrow(py);
+            children_list.append(child_node.to_dict(py)?)?;
+        }
+        dict.set_item("children", children_list)?;
+
+        if let Some(key) = &self.key {
+            dict.set_item("key", key)?;
+        }
+
+        Ok(dict.into())
+    }
+
     /// Creates a deep clone of this node
     pub fn clone_node(&self, py: Python) -> PyResult<Py<VNode>> {
         let cloned_children = self
@@ -87,7 +137,12 @@ impl VNode {
             .map(|child| child.borrow(py).clone_node(py))
             .collect::<Result<Vec<_>, _>>()?;
 
-        let cloned_props = self.props.clone();
+        // Manual clone of props because Py<PyAny> might not implement Clone in this context
+        // or to be explicit about using the GIL token
+        let mut cloned_props = HashMap::new();
+        for (k, v) in &self.props {
+            cloned_props.insert(k.clone(), v.clone_ref(py));
+        }
 
         let new_node = VNode {
             tag: self.tag.clone(),
@@ -102,13 +157,13 @@ impl VNode {
     }
 
     /// Adds a new child to this node
-    pub fn add_child(&mut self, py: Python, child: Py<VNode>) -> PyResult<()> {
+    pub fn add_child(&mut self, _py: Python, child: Py<VNode>) -> PyResult<()> {
         self.children.push(child);
         Ok(())
     }
 
     /// Adds a new prop to this node
-    pub fn add_prop(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
+    pub fn add_prop(&mut self, _py: Python, key: &str, value: Py<PyAny>) -> PyResult<()> {
         self.props.insert(key.to_string(), value);
         Ok(())
     }
@@ -118,9 +173,9 @@ impl VNode {
 #[pyclass]
 #[derive(Debug)]
 pub enum Patch {
-    AddProp { key: String, value: PyObject },
+    AddProp { key: String, value: Py<PyAny> },
     RemoveProp { key: String },
-    UpdateProp { key: String, value: PyObject },
+    UpdateProp { key: String, value: Py<PyAny> },
     AddChild { child: Py<VNode> },
     RemoveChild { index: usize },
     ReplaceChild { index: usize, child: Py<VNode> },
@@ -162,13 +217,21 @@ pub fn diff_nodes(py: Python, old_node: &VNode, new_node: &VNode) -> Vec<Patch> 
     // Compare properties
     for (key, new_value) in &new_node.props {
         match old_node.props.get(key) {
-            Some(old_value)
-                if old_value.compare(new_value).unwrap_or(false) != std::cmp::Ordering::Equal =>
-            {
-                patches.push(Patch::UpdateProp {
-                    key: key.clone(),
-                    value: new_value.clone_ref(py),
-                });
+            Some(old_value) => {
+                // Use bind(py) to get Bound<'_, PyAny> which has compare
+                let old_bound = old_value.bind(py);
+                let new_bound = new_value.bind(py);
+
+                if old_bound
+                    .compare(new_bound)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+                    != std::cmp::Ordering::Equal
+                {
+                    patches.push(Patch::UpdateProp {
+                        key: key.clone(),
+                        value: new_value.clone_ref(py),
+                    });
+                }
             }
             None => {
                 patches.push(Patch::AddProp {
@@ -176,7 +239,6 @@ pub fn diff_nodes(py: Python, old_node: &VNode, new_node: &VNode) -> Vec<Patch> 
                     value: new_value.clone_ref(py),
                 });
             }
-            _ => {}
         }
     }
 
@@ -220,8 +282,9 @@ pub fn diff_nodes(py: Python, old_node: &VNode, new_node: &VNode) -> Vec<Patch> 
     patches
 }
 
+/// Adds the Virtual DOM module to the Python module
 #[pymodule]
-fn virtual_dom(_py: Python, m: &PyModule) -> PyResult<()> {
+fn virtual_dom(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<VNode>()?;
     m.add_class::<Patch>()?;
     m.add_function(wrap_pyfunction!(diff_nodes, m)?)?;

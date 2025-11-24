@@ -37,11 +37,13 @@ impl LazyComponent {
         *task_handle = Some(tokio::spawn(async move {
             tokio::time::sleep(tokio::time::Duration::from_secs(delay)).await;
 
-            if let Ok(mut is_loading) = is_loading_clone.lock().await {
+            {
+                let mut is_loading = is_loading_clone.lock().await;
                 *is_loading = false;
             }
 
-            if let Ok(mut result) = result_clone.lock().await {
+            {
+                let mut result = result_clone.lock().await;
                 *result = Some("Resource loaded successfully".to_string());
             }
         }));
@@ -75,10 +77,9 @@ impl Drop for LazyComponent {
         // Try to cancel the task if the component is destroyed
         let task_handle = self.task_handle.clone();
         tokio::spawn(async move {
-            if let Ok(mut handle) = task_handle.lock().await {
-                if let Some(task) = handle.take() {
-                    task.abort();
-                }
+            let mut handle = task_handle.lock().await;
+            if let Some(task) = handle.take() {
+                task.abort();
             }
         });
     }

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "reactpyx"
+name = "_core"
 crate-type = ["cdylib"]
 
 [dependencies]
@@ -55,7 +55,8 @@ colored = "3.0.0"
 indicatif = "0.18.3"
 
 # Other utilities and supporting libraries
-html5ever = "0.36.1"
+html5ever = "0.27.0"
+markup5ever = "0.12"
 markup5ever_rcdom = "0.3.0"
 brotli = "8.0.2"
 
@@ -63,7 +64,8 @@ brotli = "8.0.2"
 pyo3 = { version = "0.27.1", features = [
     "macros",
     "extension-module",
-    "abi3-py38",        # This provides compatibility from Python 3.8 through 3.13+
+    "abi3-py38",          # This provides compatibility from Python 3.8 through 3.13+
+    "experimental-async",
 ] }
 
 # Caching library

@@ -35,6 +35,7 @@ dev = [
 strip = true
 cargo-extra-args = "--release"
 python-source = "python"       # To include Python module sources
+module-name = "reactpyx._core"
 
 [project.scripts]
 reactpyx = "reactpyx.cli:run_cli_py"

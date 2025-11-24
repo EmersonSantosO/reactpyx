@@ -1,16 +1,5 @@
 use pyo3::prelude::*;
 use regex::Regex;
-use std::collections::VecDeque;
-
-#[derive(Debug, Clone)]
-enum Token {
-    TagOpen(String),
-    TagClose(String),
-    SelfClosingTag(String),
-    Text(String),
-    Expression(String),
-    Attribute(String, String),
-}
 
 /// Incremental transformation of JSX code to a Python-compatible format
 #[pyfunction]
@@ -119,15 +108,13 @@ fn transform_tag(tag_content: &str) -> String {
             let key = &cap[1];
             let value = if let Some(v) = cap.get(2) {
                 // Expression: {value}
-                v.as_str()
+                v.as_str().to_string()
             } else if let Some(v) = cap.get(3) {
                 // Double quoted: "value"
-                format!("\"{}\"", v).as_str().to_owned()
+                format!("\"{}\"", v.as_str())
             } else {
                 // Single quoted: 'value'
                 format!("\"{}\"", cap.get(4).unwrap().as_str())
-                    .as_str()
-                    .to_owned()
             };
 
             // Handle className -> class mapping if needed, or keep as is
@@ -153,14 +140,4 @@ fn transform_tag(tag_content: &str) -> String {
     } else {
         format!("create_element(\"{}\", {}, [", clean_tag_name, props_str)
     }
-}
-
-// Helper function for basic JSX transformation (kept for compatibility if needed)
-pub fn transform_jsx_base(jsx_code: &str) -> String {
-    parse_jsx(jsx_code).unwrap_or_else(|_| jsx_code.to_string())
-}
-
-// Helper function to transform individual lines
-pub fn transform_jsx_line(line: &str) -> String {
-    parse_jsx(line).unwrap_or_else(|_| line.to_string())
 }

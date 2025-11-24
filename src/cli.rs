@@ -7,11 +7,13 @@ use tokio::runtime::Runtime;
 mod cli_build_project;
 mod cli_create_project;
 mod cli_init_project;
+mod cli_install_library;
 mod cli_run_server;
 
 use cli_build_project::build_project;
 use cli_create_project::create_project;
 use cli_init_project::init_project;
+use cli_install_library::install_library;
 use cli_run_server::run_server;
 use log::{error, info};
 
@@ -66,7 +68,19 @@ enum Commands {
 
 pub fn run_cli() -> anyhow::Result<()> {
     let cli = Cli::parse();
+    execute_cli(cli)
+}
 
+pub fn run_cli_with_args<I, T>(args: I) -> anyhow::Result<()>
+where
+    I: IntoIterator<Item = T>,
+    T: Into<std::ffi::OsString> + Clone,
+{
+    let cli = Cli::parse_from(args);
+    execute_cli(cli)
+}
+
+fn execute_cli(cli: Cli) -> anyhow::Result<()> {
     match cli.command {
         Commands::CreateProject { project_name } => {
             info!("Creating project: {}", project_name);

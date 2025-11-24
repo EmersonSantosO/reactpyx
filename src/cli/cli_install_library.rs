@@ -151,7 +151,7 @@ def bs_button(variant="primary", size="", text="Button"):
             println!("    # Now use Bootstrap classes");
             println!("    return <div className=\"container mt-4\">");
             println!("        <h1 className=\"display-4\">Hello Bootstrap</h1>");
-            println!("        {bs_button(\"primary\", \"lg\", \"Click Me\")}");
+            println!("        {{bs_button(\"primary\", \"lg\", \"Click Me\")}}");
             println!("    </div>");
             println!("```");
         }

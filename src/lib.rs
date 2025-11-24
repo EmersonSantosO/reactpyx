@@ -6,9 +6,12 @@ mod hooks;
 mod html_minifier;
 mod js_minifier;
 mod jsx_transformer;
+mod lazy_component;
 mod logger;
-mod virtual_dom;
+mod plugin_system;
 mod precompiler;
+mod suspense;
+mod virtual_dom;
 
 use crate::compiler::{compile_all_pyx, compile_pyx_file_to_python, update_application};
 use crate::hooks::{Dispatch, SetState};
@@ -16,6 +19,7 @@ use crate::virtual_dom::Patch;
 use log::{error, info};
 use once_cell::sync::Lazy;
 use pyo3::{prelude::*, wrap_pyfunction};
+use std::ffi::CString;
 use std::sync::Once;
 use tokio::runtime::Runtime;
 
@@ -30,26 +34,28 @@ static LOGGER_INIT: Once = Once::new();
 
 /// Main ReactPyx module in Rust for Python
 #[pymodule]
-fn reactpyx(py: Python, m: &PyModule) -> PyResult<()> {
+fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     LOGGER_INIT.call_once(|| env_logger::init());
 
     m.add_class::<Patch>()?;
+    m.add_class::<crate::lazy_component::LazyComponent>()?;
+    m.add_class::<crate::suspense::SuspenseComponent>()?;
     m.add_function(wrap_pyfunction!(run_cli_py, m)?)?;
 
-    add_jsx_transformers_to_module(py, m)?;
-    add_hooks_to_module(py, m)?;
-    add_minifiers_to_module(py, m)?;
-    add_compiler_to_module(py, m)?;
-    add_event_handlers_to_module(py, m)?;
-    add_virtual_dom_to_module(py, m)?;
-    add_css_compiler_to_module(py, m)?; // Add the CSS compiler module
+    add_jsx_transformers_to_module(m)?;
+    add_hooks_to_module(m)?;
+    add_minifiers_to_module(m)?;
+    add_compiler_to_module(m)?;
+    add_event_handlers_to_module(m)?;
+    add_virtual_dom_to_module(m)?;
+    add_css_compiler_to_module(m)?; // Add the CSS compiler module
 
     info!("ReactPyx core and CLI successfully initialized.");
     Ok(())
 }
 
 /// Add hooks to PyO3 module
-fn add_hooks_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
+fn add_hooks_to_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     use crate::hooks::{
         use_context, use_effect, use_effect_with_deps, use_lazy_state, use_reducer, use_state,
     };
@@ -66,7 +72,7 @@ fn add_hooks_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
 }
 
 /// Add minifiers to PyO3 module
-fn add_minifiers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
+fn add_minifiers_to_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     use crate::css_minifier::minify_css_code;
     use crate::html_minifier::minify_html_code;
     use crate::js_minifier::minify_js_code;
@@ -78,7 +84,7 @@ fn add_minifiers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
 }
 
 /// Add JSX transformers to PyO3 module
-fn add_jsx_transformers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
+fn add_jsx_transformers_to_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     use crate::jsx_transformer::{incremental_jsx_transform, parse_jsx};
 
     m.add_function(wrap_pyfunction!(parse_jsx, m)?)?;
@@ -86,12 +92,7 @@ fn add_jsx_transformers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
     Ok(())
 }
 
-fn add_compiler_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
-    use crate::compiler::{
-        compile_all_pyx_py, compile_pyx_file_to_python_py, compile_pyx_to_js_py,
-        update_application_py,
-    };
-
+fn add_compiler_to_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(compile_all_pyx_py, m)?)?;
     m.add_function(wrap_pyfunction!(compile_pyx_file_to_python_py, m)?)?;
     m.add_function(wrap_pyfunction!(compile_pyx_to_js_py, m)?)?;
@@ -100,7 +101,7 @@ fn add_compiler_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
 }
 
 /// Add event handlers to PyO3 module
-fn add_event_handlers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
+fn add_event_handlers_to_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     use crate::event_handler::EventHandler;
 
     m.add_class::<EventHandler>()?;
@@ -108,7 +109,7 @@ fn add_event_handlers_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
 }
 
 /// Add Virtual DOM and related functionalities to PyO3 module
-fn add_virtual_dom_to_module(_py: Python, m: &PyModule) -> PyResult<()> {
+fn add_virtual_dom_to_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     use crate::virtual_dom::VNode;
 
     m.add_class::<VNode>()?;
@@ -135,14 +136,14 @@ fn validate_path(path: &str) -> PyResult<()> {
 #[pyfunction]
 fn compile_all_pyx_py(
     project_root: &str,
-    config_path: &str,
-    target_env: &str,
+    _config_path: &str,
+    _target_env: &str,
 ) -> PyResult<(Vec<String>, Vec<(String, String)>)> {
     validate_path(project_root)?;
-    validate_path(config_path)?;
+    // validate_path(_config_path)?;
 
     TOKIO_RUNTIME.block_on(async move {
-        compile_all_pyx(project_root, config_path, target_env)
+        compile_all_pyx(project_root, _config_path, _target_env)
             .await
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(e.to_string()))
     })
@@ -212,9 +213,9 @@ fn compile_pyx_to_js_py(
 /// Compile a `.pyx` file to JavaScript - Underlying implementation
 async fn compile_pyx_to_js(
     entry_file: &str,
-    config_path: &str,
+    _config_path: &str,
     output_dir: &str,
-    target_env: &str,
+    _target_env: &str,
 ) -> anyhow::Result<()> {
     use std::path::Path;
 
@@ -237,9 +238,14 @@ async fn compile_pyx_to_js(
 /// Add Python functions to start the CLI from Python
 #[pyfunction]
 fn run_cli_py() -> PyResult<()> {
-    use crate::cli::run_cli;
+    use crate::cli::run_cli_with_args;
 
-    if let Err(e) = run_cli() {
+    let args: Vec<String> = Python::with_gil(|py| {
+        let sys = py.import("sys")?;
+        sys.getattr("argv")?.extract()
+    })?;
+
+    if let Err(e) = run_cli_with_args(args) {
         error!("Error in CLI: {}", e);
         return Err(PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(
             e.to_string(),
@@ -250,20 +256,19 @@ fn run_cli_py() -> PyResult<()> {
 }
 
 /// Import and register the CSS compiler Python module
-fn import_css_compiler(py: Python) -> PyResult<&PyModule> {
+fn import_css_compiler(py: Python<'_>) -> PyResult<Bound<'_, PyModule>> {
     let module_code = include_str!("python/css_compiler.py");
-    let module = PyModule::from_code(
-        py,
-        module_code,
-        "reactpyx.css_compiler",
-        "reactpyx.css_compiler",
-    )?;
+    let code = CString::new(module_code).unwrap();
+    let file_name = CString::new("reactpyx.css_compiler").unwrap();
+    let module_name = CString::new("reactpyx.css_compiler").unwrap();
+
+    let module = PyModule::from_code(py, &code, &file_name, &module_name)?;
     Ok(module)
 }
 
 /// Add Python CSS compiler functions to the module
-fn add_css_compiler_to_module(py: Python, m: &PyModule) -> PyResult<()> {
-    let css_compiler = import_css_compiler(py)?;
+fn add_css_compiler_to_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    let css_compiler = import_css_compiler(m.py())?;
 
     // Import functions from css_compiler module
     let extract_css = css_compiler.getattr("extract_css_from_pyx")?;

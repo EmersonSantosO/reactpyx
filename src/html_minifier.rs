@@ -1,9 +1,11 @@
 use html5ever::tendril::TendrilSink;
 use html5ever::{parse_document, serialize};
-use markup5ever_rcdom::RcDom;
+use markup5ever_rcdom::{RcDom, SerializableHandle};
+use pyo3::prelude::*;
 use std::io::{self, BufReader};
 
 /// Minifies HTML code using `html5ever`.
+#[pyfunction]
 pub fn minify_html_code(html: &str) -> Result<String, io::Error> {
     // Parse HTML into a DOM structure
     let dom = parse_document(RcDom::default(), Default::default())
@@ -18,7 +20,8 @@ pub fn minify_html_code(html: &str) -> Result<String, io::Error> {
 
     // Serialize DOM back to HTML with minification
     let mut minified_html = Vec::new();
-    serialize(&mut minified_html, &dom.document, Default::default()).map_err(|e| {
+    let handle: SerializableHandle = dom.document.clone().into();
+    serialize(&mut minified_html, &handle, Default::default()).map_err(|e| {
         io::Error::new(
             io::ErrorKind::InvalidData,
             format!("Error serializing HTML: {:?}", e),
