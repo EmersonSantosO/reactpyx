@@ -48,7 +48,20 @@ impl VNode {
 
         // Add attributes
         for (key, value) in &self.props {
-            let value_str: String = value.extract(py)?;
+            // Skip event handlers (starting with "on") for SSR string generation
+            // or handle them specially if needed.
+            if key.starts_with("on") {
+                continue;
+            }
+
+            // Safely convert value to string
+            let value_str: String = if let Ok(s) = value.extract::<String>(py) {
+                s
+            } else {
+                // If not a string, try to convert using str()
+                value.as_ref(py).str()?.to_string()
+            };
+
             html.push_str(&format!(" {}=\"{}\"", key, value_str));
         }
         html.push('>');
@@ -65,13 +78,15 @@ impl VNode {
 
         Ok(html)
     }
-    
+
     /// Creates a deep clone of this node
     pub fn clone_node(&self, py: Python) -> PyResult<Py<VNode>> {
-        let cloned_children = self.children.iter()
+        let cloned_children = self
+            .children
+            .iter()
             .map(|child| child.borrow(py).clone_node(py))
             .collect::<Result<Vec<_>, _>>()?;
-        
+
         let cloned_props = self.props.clone();
 
         let new_node = VNode {
@@ -82,16 +97,16 @@ impl VNode {
             cache_duration_secs: self.cache_duration_secs,
             key: self.key.clone(),
         };
-        
+
         Py::new(py, new_node)
     }
-    
+
     /// Adds a new child to this node
     pub fn add_child(&mut self, py: Python, child: Py<VNode>) -> PyResult<()> {
         self.children.push(child);
         Ok(())
     }
-    
+
     /// Adds a new prop to this node
     pub fn add_prop(&mut self, py: Python, key: &str, value: PyObject) -> PyResult<()> {
         self.props.insert(key.to_string(), value);
@@ -147,7 +162,9 @@ pub fn diff_nodes(py: Python, old_node: &VNode, new_node: &VNode) -> Vec<Patch> 
     // Compare properties
     for (key, new_value) in &new_node.props {
         match old_node.props.get(key) {
-            Some(old_value) if old_value.compare(new_value).unwrap_or(false) != std::cmp::Ordering::Equal => {
+            Some(old_value)
+                if old_value.compare(new_value).unwrap_or(false) != std::cmp::Ordering::Equal =>
+            {
                 patches.push(Patch::UpdateProp {
                     key: key.clone(),
                     value: new_value.clone_ref(py),

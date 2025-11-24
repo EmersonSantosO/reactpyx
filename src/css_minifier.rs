@@ -11,7 +11,10 @@ pub fn minify_css_code(css_code: &str) -> PyResult<String> {
     })?;
 
     // Minify CSS using `lightningcss`
-    let minified = stylesheet.to_css(PrinterOptions::default()).map_err(|e| {
+    let mut printer_options = PrinterOptions::default();
+    printer_options.minify = true;
+
+    let minified = stylesheet.to_css(printer_options).map_err(|e| {
         PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Error minifying CSS: {}", e))
     })?;
 

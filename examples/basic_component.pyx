@@ -16,6 +16,11 @@ def Button(props):
             onClick={handle_click}
         >
             Clicked {count} times
+            
+            <style>
+                button { transition: all 0.2s; }
+                button:hover { transform: scale(1.05); }
+            </style>
         </button>
     )
 

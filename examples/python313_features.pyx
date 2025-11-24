@@ -1,7 +1,7 @@
 """
-ReactPyx with Python 3.13 Features Example
+ReactPyx with Python 3.13+ Features Example
 
-This example demonstrates how to use Python 3.13 features in ReactPyx components.
+This example demonstrates how to use Python 3.13 and 3.14 features in ReactPyx components.
 """
 from reactpyx import use_state, use_effect
 from typing import typed
@@ -19,7 +19,7 @@ class User:
 
 def UserCard(props):
     """
-    Component that shows user information using Python 3.13 features
+    Component that shows user information using Python 3.13+ features
     """
     # Create a user with Python 3.13's typed class
     user = User(name=props.get("name", "Guest"), age=props.get("age", 30))

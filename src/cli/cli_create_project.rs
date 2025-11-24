@@ -256,9 +256,32 @@ async def favicon():
 
 @app.get("/{full_path:path}", response_class=HTMLResponse)
 async def serve_spa(request: Request, full_path: str):
+    # SSR Implementation
+    try:
+        # Add build directory to path to import compiled components
+        build_dir = os.path.join(BASE_DIR, "build")
+        if build_dir not in sys.path:
+            sys.path.append(build_dir)
+            
+        # Import the entry point (compiled from src/main.pyx)
+        # Note: This assumes src/main.pyx compiles to build/main.py
+        import main as app_main
+        
+        # Reload module in development to pick up changes
+        import importlib
+        importlib.reload(app_main)
+        
+        # Render the app
+        app_instance = app_main.MainApp()
+        app_html = app_instance.render()
+    except Exception as e:
+        print(f"SSR Error: {e}")
+        app_html = f"<!-- SSR Error: {e} -->"
+
     context = {
         "request": request,
-        "page_title": "ReactPyx Application"
+        "page_title": "ReactPyx Application",
+        "content": app_html
     }
     return templates.TemplateResponse("index.jinja2", context)
 
@@ -297,27 +320,14 @@ if __name__ == "__main__":
 </head>
 <body>
     <div id="app">
+        {{ content | safe }}
         {% block content %}
-            <!-- Fallback content while JS loads -->
-            <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; color: #555; flex-direction: column;">
-                <svg width="50" height="50" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" stroke="#4299e1" style="margin-bottom: 1rem;">
-                    <g fill="none" fill-rule="evenodd">
-                        <g transform="translate(1 1)" stroke-width="2">
-                            <circle stroke-opacity=".5" cx="18" cy="18" r="18"/>
-                            <path d="M36 18c0-9.94-8.06-18-18-18">
-                                <animateTransform attributeName="transform" type="rotate" from="0 18 18" to="360 18 18" dur="1s" repeatCount="indefinite"/>
-                            </path>
-                        </g>
-                    </g>
-                </svg>
-                Cargando ReactPyx...
-            </div>
         {% endblock content %}
     </div>
-    <script src="{{ url_for('static', path='app.js') }}" async></script>
-    {% block body_scripts %}{% endblock body_scripts %}
+    <script src="{{ url_for('static', path='bundle.js') }}"></script>
 </body>
-</html>"#;
+</html>
+"#;
     fs::write(project_root.join("templates/base.jinja2"), base_template_content)
         .context("Failed to write templates/base.jinja2")?;
 
@@ -396,8 +406,8 @@ def use_styles(styles_dict):
     );
     println!("  1. {}", format!("cd {}", project_name).yellow());
     println!("  2. {}", "Consider creating a virtual environment: python -m venv venv && source venv/bin/activate".dimmed());
-    println!("  3. {}", "Install dependencies: pip install -e .".yellow().bold()); # Assuming pyproject.toml is set up for editable install
-    # println!("  3. {}", "reactpyx init --env development (If needed)".yellow()); # Comentado si 'init' no es necesario ahora
+    println!("  3. {}", "Install dependencies: pip install -e .".yellow().bold()); // Assuming pyproject.toml is set up for editable install
+    // println!("  3. {}", "reactpyx init --env development (If needed)".yellow()); // Comentado si 'init' no es necesario ahora
     println!("  4. {}", "Run the development server: reactpyx run".yellow().bold());
     println!("\n{}", "CSS Frameworks:".cyan());
     println!("  - {}", "reactpyx install tailwind".yellow());

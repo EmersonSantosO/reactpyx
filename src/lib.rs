@@ -8,6 +8,7 @@ mod js_minifier;
 mod jsx_transformer;
 mod logger;
 mod virtual_dom;
+mod precompiler;
 
 use crate::compiler::{compile_all_pyx, compile_pyx_file_to_python, update_application};
 use crate::hooks::{Dispatch, SetState};

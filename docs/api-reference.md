@@ -2,7 +2,7 @@
 
 <div align="center">
   <img src="assets/api-reference.png" alt="API Reference" width="300">
-  <p><strong>Compatible with Python 3.8 through 3.13</strong></p>
+  <p><strong>Compatible with Python 3.8 through 3.14</strong></p>
 </div>
 
 This documentation details all APIs available in ReactPyx.

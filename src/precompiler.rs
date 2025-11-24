@@ -70,10 +70,10 @@ impl JSXPrecompiler {
 
     /// Logic to transform JSX to Python
     fn transform_jsx_to_python(&self, jsx_code: &str) -> String {
-        jsx_code
-            .replace("<", "create_element(")
-            .replace("/>", ");")
-            .replace(">", ", [")
-            .replace("</", "]);")
+        // Use the shared JSX transformer logic
+        crate::jsx_transformer::parse_jsx(jsx_code).unwrap_or_else(|e| {
+            eprintln!("Error transforming JSX: {}", e);
+            jsx_code.to_string()
+        })
     }
 }

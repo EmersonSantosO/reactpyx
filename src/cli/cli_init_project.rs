@@ -44,14 +44,15 @@ body {
   padding: 1rem;
 }
 "#,
-    ).context("Failed to create default CSS file")?;
+    )
+    .context("Failed to create default CSS file")?;
 
     // Check Python version
     let python_version = Command::new("python")
         .arg("--version")
         .output()
         .context("Could not detect Python version")?;
-    
+
     let version_str = String::from_utf8_lossy(&python_version.stdout);
     println!("{} {}", "Detected:".blue(), version_str.trim());
 
@@ -72,45 +73,15 @@ body {
     // Install environment-specific dependencies
     match env {
         "development" => {
+            println!("Installing development dependencies...");
             Command::new("pip")
-                .args(&["install", "reactpyx", "fastapi", "uvicorn"])
+                .args(&["install", "fastapi", "uvicorn", "jinja2"])
                 .spawn()?
                 .wait()
                 .context("Error installing development dependencies")?;
-            
-            // Create a development index.html with live reload support
-            fs::write(
-                "public/index.html",
-                r#"<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ReactPyx Application - Development</title>
-        <link rel="stylesheet" href="/static/styles.css">
-        <meta name="description" content="A web application built with ReactPyx, a Python framework similar to JSX.">
-        
-        <!-- Add CDN libraries here if needed -->
-        <!-- For example: -->
-        <!-- <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"> -->
-    </head>
-    <body>
-        <div id="app">
-            <!-- Content rendered by ReactPyx will be inserted here -->
-        </div>
-        <script src="/static/app.js" async></script>
-        <script>
-            // Simple live reload (for development)
-            const liveReload = () => {
-                const socket = new WebSocket(`ws://${location.host}/ws/live-reload`);
-                socket.onmessage = () => location.reload();
-                socket.onclose = () => setTimeout(liveReload, 1000);
-            };
-            liveReload();
-        </script>
-    </body>
-</html>"#,
-            ).context("Failed to create development index.html")?;
+
+            // Note: index.html is now handled by Jinja2 templates in templates/
+            // We don't need to create public/index.html here anymore for the new architecture
 
             // Create Python 3.13 demonstration file
             fs::write(
@@ -148,7 +119,8 @@ def try_except_demo():
         e.add_note("This demonstrates Python 3.13's enhanced exception handling")
         raise
 "#,
-            ).context("Failed to create Python 3.13 features demo file")?;
+            )
+            .context("Failed to create Python 3.13 features demo file")?;
         }
         "production" => {
             // Only install production-necessary dependencies
@@ -157,29 +129,10 @@ def try_except_demo():
                 .spawn()?
                 .wait()
                 .context("Error installing production dependencies")?;
-            
+
             // Create a production index.html without development features
-            fs::write(
-                "public/index.html",
-                r#"<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ReactPyx Application</title>
-        <link rel="stylesheet" href="/static/styles.css">
-        <meta name="description" content="A web application built with ReactPyx, a Python framework similar to JSX.">
-        
-        <!-- Add CDN libraries here if needed -->
-    </head>
-    <body>
-        <div id="app">
-            <!-- Content rendered by ReactPyx will be inserted here -->
-        </div>
-        <script src="/static/app.js" async></script>
-    </body>
-</html>"#,
-            ).context("Failed to create production index.html")?;
+            // Note: index.html is now handled by Jinja2 templates in templates/
+            // fs::write("public/index.html", ...).context("Failed to create production index.html")?;
         }
         _ => {
             return Err(anyhow::anyhow!("Unrecognized environment: {}", env));
@@ -215,24 +168,31 @@ def combine_classes(*args):
     """
     return " ".join([cls for cls in args if cls])
 "#,
-    ).context("Failed to create CSS helper module")?;
+    )
+    .context("Failed to create CSS helper module")?;
 
     pb.finish_with_message(format!(
         "{} {}",
         "Project".green(),
         "successfully initialized!".green()
     ));
-    
+
     println!("\n{}", "Quick Start:".cyan());
-    println!("1. Add CSS via CDN: {}", "reactpyx Install tailwind".yellow());
+    println!(
+        "1. Add CSS via CDN: {}",
+        "reactpyx Install tailwind".yellow()
+    );
     println!("2. Run the server: {}", "reactpyx Run".yellow());
-    println!("3. Build for production: {}", "reactpyx Build --env python --output dist".yellow());
-    
+    println!(
+        "3. Build for production: {}",
+        "reactpyx Build --env python --output dist".yellow()
+    );
+
     println!("\n{}", "Python 3.13 Features:".cyan());
     println!("- Type parameters using 'type' keyword");
     println!("- Enhanced f-strings interpolation");
     println!("- Improved exception handling");
     println!("- See more in the src/py313_features.py demo file");
-    
+
     Ok(())
 }

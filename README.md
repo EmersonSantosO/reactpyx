@@ -7,7 +7,7 @@
     <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version">
     <img src="https://img.shields.io/badge/status-alpha-orange" alt="Status">
     <img src="https://img.shields.io/badge/rust-1.75+-orange" alt="Rust">
-    <img src="https://img.shields.io/badge/python-3.8_|_3.9_|_3.10_|_3.11_|_3.12_|_3.13-blue" alt="Python">
+    <img src="https://img.shields.io/badge/python-3.8_|_..._|_3.13_|_3.14-blue" alt="Python">
   </div>
 </div>
 
@@ -37,16 +37,20 @@
 - **Hot Module Replacement** - Instant reloading during development
 - **Built with Rust** - High-performance core written in Rust
 - **Suspense & Async Components** - Elegant handling of asynchronous loading
-- **Python 3.13 Support** - Use the latest Python features:
+- **Python 3.14 Support** - Ready for the future of Python:
+  - Full compatibility with Python 3.13 and 3.14 features
   - Type parameters with `type` keyword (PEP 695)
-  - Typed class decorator for rich class typings
   - Enhanced f-strings with debug expressions
   - Improved exception notes and error handling
 
 ## 📦 Installation
 
+For development (from source):
+
 ```bash
-pip install reactpyx
+git clone https://github.com/EmersonSantosO/core_reactpyx.git
+cd core_reactpyx
+pip install -e .
 ```
 
 ## 🛠️ Quick Usage
@@ -56,12 +60,6 @@ pip install reactpyx
 ```bash
 reactpyx create-project my-app
 cd my-app
-```
-
-### Initialize the project
-
-```bash
-reactpyx init --env development
 ```
 
 ### Run development server
@@ -87,6 +85,11 @@ def Counter():
         <div className="counter">
             <h2>Counter: {count}</h2>
             <button onClick={increment}>Increment</button>
+
+            <style>
+                .counter { padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+                button { background: #007bff; color: white; border: none; padding: 10px 20px; cursor: pointer; }
+            </style>
         </div>
     )
 ```

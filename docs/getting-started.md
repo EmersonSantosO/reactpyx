@@ -19,8 +19,10 @@
 Make sure you have Python 3.8+ and Rust 1.75+ installed on your system.
 
 ```bash
-# Install ReactPyx from PyPI
-pip install reactpyx
+# Install ReactPyx from source (recommended for development)
+git clone https://github.com/EmersonSantosO/core_reactpyx.git
+cd core_reactpyx
+pip install -e .
 
 # Verify installation
 reactpyx --version
@@ -35,8 +37,8 @@ reactpyx create-project my-app
 # Navigate to project directory
 cd my-app
 
-# Initialize project (installs dependencies)
-reactpyx init --env development
+# Run the development server
+reactpyx run
 ```
 
 ## Project structure
@@ -46,21 +48,29 @@ A ReactPyx project has the following structure:
 ```
 my-app/
 ├── public/
-│   ├── index.html
-│   └── static/
-│       ├── app.js
-│       └── styles.css
+│   └── favicon.ico
+├── build/ (generated)
+│   ├── components/
+│   ├── bundle.js
+│   └── styles.css
 ├── src/
 │   ├── components/
 │   │   └── ... (.pyx files)
+│   ├── styles/
+│   │   └── main.css
 │   ├── App.pyx
-│   └── index.py
+│   └── main.pyx
+├── templates/
+│   ├── base.jinja2
+│   ├── index.jinja2
+│   └── 404.jinja2
+├── main.py (FastAPI server)
 └── pyx.config.json
 ```
 
 ## Creating components
 
-Components in ReactPyx are defined in `.pyx` files:
+Components in ReactPyx are defined in `.pyx` files. You can include scoped styles directly in your components:
 
 ```python
 # src/components/Greeting.pyx
@@ -71,6 +81,16 @@ def Greeting(props):
     return (
         <div className="greeting">
             <h1>Hello, {name}!</h1>
+
+            <style>
+                .greeting {
+                    background-color: #f0f9ff;
+                    padding: 1.5rem;
+                    border-radius: 0.5rem;
+                    border: 1px solid #bae6fd;
+                }
+                h1 { color: #0369a1; }
+            </style>
         </div>
     )
 ```

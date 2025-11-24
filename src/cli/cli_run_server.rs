@@ -1,8 +1,8 @@
 use crate::compiler;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use colored::Colorize;
-use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use std::path::{Path, PathBuf};
+use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use std::path::Path;
 use std::process::Command;
 use std::sync::mpsc::channel;
 use std::time::Duration;
@@ -35,8 +35,13 @@ pub async fn run_server() -> Result<()> {
     }
 
     // Process initial CSS files before starting the server
-    println!("{}", "Processing CSS files...".blue());
-    process_css_files().await?;
+    // println!("{}", "Processing CSS files...".blue());
+    // process_css_files().await?;
+
+    // Initial compilation of all components
+    println!("{}", "Compiling components...".blue());
+    let project_root = std::env::current_dir()?.to_string_lossy().to_string();
+    compiler::compile_all_pyx(&project_root, "pyx.config.json", "python").await?;
 
     // Start FastAPI server in a separate process
     let mut child = Command::new("uvicorn")
@@ -53,7 +58,10 @@ pub async fn run_server() -> Result<()> {
 
     // Watch for changes in `src` folder files
     let (tx, rx) = channel();
-    let mut watcher = RecommendedWatcher::new(tx, Duration::from_secs(1))?;
+    let mut watcher = RecommendedWatcher::new(
+        tx,
+        notify::Config::default().with_poll_interval(Duration::from_secs(1)),
+    )?;
 
     watcher.watch(Path::new("src"), RecursiveMode::Recursive)?;
 
@@ -92,12 +100,11 @@ async fn handle_pyx_file_change(path: &Path) -> Result<()> {
     println!("{} {}", "PyX file changed:".green(), path.display());
 
     // Recompile modified file
-    let project_root = std::env::current_dir()?.to_string_lossy().to_string();
     let file_path = path.to_string_lossy().to_string();
 
     println!("{} {}", "Recompiling".yellow(), file_path);
 
-    match crate::compiler::compile_pyx_file_to_python(path, "config.json", "python").await {
+    match crate::compiler::compile_pyx_file_to_python(path, "pyx.config.json", "python").await {
         Ok(_) => println!("{} {}", "✓".green(), "Compilation successful"),
         Err(e) => println!("{} {}: {}", "✗".red(), "Compilation error".red(), e),
     }

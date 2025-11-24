@@ -1,13 +1,11 @@
 use crate::css_minifier::minify_css_code;
 use crate::js_minifier::minify_js_code;
 use anyhow::{Context, Result};
-use cached::proc_macro::cached;
 use futures::StreamExt;
-use log::{error, info, warn};
+use log::{error, info};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tokio::fs;
-use tokio_stream::wrappers::ReadDirStream;
 
 /// Compiles all `.pyx` files in the project asynchronously and in parallel
 pub async fn compile_all_pyx(
@@ -15,68 +13,83 @@ pub async fn compile_all_pyx(
     config_path: &str,
     target_env: &str, // "node" or "python"
 ) -> Result<(Vec<String>, Vec<(String, String)>)> {
-    let components_dir = Path::new(project_root).join("src").join("components");
+    let src_dir = Path::new(project_root).join("src");
 
-    let components = detect_components_in_directory(&components_dir).await?;
-    info!("Starting compilation with components: {:?}", components);
+    // Recursively find all .pyx files
+    let mut pyx_files = Vec::new();
+    let mut dirs_to_visit = vec![src_dir];
+
+    while let Some(dir) = dirs_to_visit.pop() {
+        if let Ok(mut entries) = fs::read_dir(&dir).await {
+            while let Ok(Some(entry)) = entries.next_entry().await {
+                let path = entry.path();
+                if path.is_dir() {
+                    dirs_to_visit.push(path);
+                } else if let Some(ext) = path.extension() {
+                    if ext == "pyx" {
+                        pyx_files.push(path);
+                    }
+                }
+            }
+        }
+    }
+
+    info!("Found {} .pyx files to compile", pyx_files.len());
 
     let compiled_files = Arc::new(Mutex::new(Vec::new()));
     let errors = Arc::new(Mutex::new(Vec::new()));
 
-    let concurrency_level = 8; // Concurrency level to control parallel processing
+    let concurrency_level = 8;
 
     // Process files in parallel
-    let stream = ReadDirStream::new(fs::read_dir(&components_dir).await?);
-    stream
-        .for_each_concurrent(Some(concurrency_level), |entry| {
+    futures::stream::iter(pyx_files)
+        .for_each_concurrent(Some(concurrency_level), |file_path| {
             let compiled_files = Arc::clone(&compiled_files);
             let errors = Arc::clone(&errors);
-            async move {
-                if let Ok(entry) = entry {
-                    let file_path = entry.path();
-                    if file_path.exists()
-                        && file_path.extension().and_then(|s| s.to_str()) == Some("pyx")
-                    {
-                        match compile_pyx_file_to_python(&file_path, config_path, target_env).await
-                        {
-                            Ok((python_code, css_code, js_code)) => {
-                                let mut compiled_files = compiled_files.lock().unwrap();
-                                compiled_files.push(file_path.to_string_lossy().to_string());
-                                info!("Successfully compiled: {:?}", file_path);
+            let project_root = project_root.to_string();
+            let config_path = config_path.to_string();
+            let target_env = target_env.to_string();
 
-                                // Write transformed code to appropriate build directories
-                                if let Err(e) = write_transformed_files(
-                                    project_root,
-                                    &file_path,
-                                    &python_code,
-                                    &css_code,
-                                    &js_code,
-                                )
-                                .await
-                                {
-                                    error!(
-                                        "Error writing transformed files for {:?}: {}",
-                                        file_path, e
-                                    );
-                                    let mut errors = errors.lock().unwrap();
-                                    errors.push((
-                                        file_path.to_string_lossy().to_string(),
-                                        e.to_string(),
-                                    ));
-                                }
-                            }
-                            Err(e) => {
-                                let mut errors = errors.lock().unwrap();
-                                errors
-                                    .push((file_path.to_string_lossy().to_string(), e.to_string()));
-                                error!("Error compiling {:?}: {}", file_path, e);
-                            }
+            async move {
+                match compile_pyx_file_to_python(&file_path, &config_path, &target_env).await {
+                    Ok((python_code, css_code, js_code)) => {
+                        let mut compiled_files = compiled_files.lock().unwrap();
+                        compiled_files.push(file_path.to_string_lossy().to_string());
+                        info!("Successfully compiled: {:?}", file_path);
+
+                        // Write transformed code to appropriate build directories
+                        if let Err(e) = write_transformed_files(
+                            &project_root,
+                            &file_path,
+                            &python_code,
+                            &css_code,
+                            &js_code,
+                        )
+                        .await
+                        {
+                            error!("Error writing transformed files for {:?}: {}", file_path, e);
+                            let mut errors = errors.lock().unwrap();
+                            errors.push((file_path.to_string_lossy().to_string(), e.to_string()));
                         }
+                    }
+                    Err(e) => {
+                        let mut errors = errors.lock().unwrap();
+                        errors.push((file_path.to_string_lossy().to_string(), e.to_string()));
+                        error!("Error compiling {:?}: {}", file_path, e);
                     }
                 }
             }
         })
         .await;
+
+    // Ensure __init__.py exists in build/components
+    let components_out_dir = Path::new(project_root).join("build").join("components");
+    if components_out_dir.exists() {
+        let init_path = components_out_dir.join("__init__.py");
+        if !init_path.exists() {
+            let _ = fs::write(init_path, "").await;
+        }
+    }
 
     Ok((
         Arc::try_unwrap(compiled_files)
@@ -159,21 +172,34 @@ pub async fn compile_pyx_file_to_python(
 
 /// Transform Python styles and logic to CSS and JavaScript
 fn transform_styles_and_js(python_code: &str, target_env: &str) -> Result<(String, String)> {
-    // Placeholder for logic to transform styles to CSS
-    let css_code = format!(
-        "/* CSS generated from Python styles */\n{}",
-        python_code // Replace with actual CSS transformation logic
-    );
+    // Extract CSS from <style> tags in the code
+    // This is a basic implementation that looks for strings containing <style>...</style>
+    // In a real implementation, we would parse the Python AST to find these strings.
+
+    let mut css_code = String::new();
+    // let mut cleaned_python = python_code.to_string();
+
+    let style_regex = regex::Regex::new(r"(?s)<style>(.*?)</style>").unwrap();
+
+    // Collect all styles
+    for cap in style_regex.captures_iter(python_code) {
+        if let Some(style_content) = cap.get(1) {
+            css_code.push_str(style_content.as_str());
+            css_code.push('\n');
+        }
+    }
+
+    // Remove style tags from python code (optional, but cleaner)
+    // For now we keep them or replace them with empty strings to avoid breaking line numbers too much
+    // cleaned_python = style_regex.replace_all(python_code, "").to_string();
 
     // Transform styles and animations to JS
     let js_code = match target_env {
         "node" => format!(
-            "// JS logic generated for Node.js environment\n{}",
-            python_code // Replace with Node.js specific transformation logic
+            "// JS logic generated for Node.js environment\nconsole.log('Hydration not implemented yet');",
         ),
         "python" => format!(
-            "// JS logic generated for Python environment\n{}",
-            python_code // Replace with Python specific transformation logic
+            "// JS logic generated for Python environment\nconsole.log('Hydration not implemented yet');",
         ),
         _ => unreachable!(),
     };
@@ -181,88 +207,15 @@ fn transform_styles_and_js(python_code: &str, target_env: &str) -> Result<(Strin
     Ok((css_code, js_code))
 }
 
-/// Detects components in the components directory
-async fn detect_components_in_directory(components_dir: &Path) -> Result<Vec<String>> {
-    let mut components = Vec::new();
-    let mut dir_entries = ReadDirStream::new(
-        fs::read_dir(components_dir)
-            .await
-            .with_context(|| format!("Error reading directory {:?}", components_dir))?,
-    );
-
-    while let Some(entry) = dir_entries.next().await {
-        let entry = entry?;
-        let path = entry.path();
-
-        if path.is_file() {
-            match path.extension().and_then(|s| s.to_str()) {
-                Some("pyx") => {
-                    let detected_components = detect_components_in_file(&path).await?;
-                    components.extend(detected_components);
-                }
-                _ => {}
-            }
-        } else if path.is_dir() {
-            let sub_components = detect_components_in_directory(&path).await?;
-            components.extend(sub_components);
-        }
-    }
-
-    if components.is_empty() {
-        warn!("No components found in directory: {:?}", components_dir);
-    }
-
-    Ok(components)
-}
-
-/// Detects components within a file
-async fn detect_components_in_file(file_path: &Path) -> Result<Vec<String>> {
-    let source = fs::read_to_string(file_path)
-        .await
-        .with_context(|| format!("Error reading file {:?}", file_path))?;
-
-    if !source.is_ascii() {
-        return Err(anyhow::anyhow!(
-            "File contains non-ASCII characters: {:?}",
-            file_path
-        ));
-    }
-
-    let tree =
-        syn::parse_file(&source).with_context(|| format!("Error parsing file: {:?}", file_path))?;
-
-    let mut components = Vec::new();
-    for item in &tree.items {
-        if let syn::Item::Fn(func) = item {
-            let name = func.sig.ident.to_string();
-            if name
-                .chars()
-                .next()
-                .map(|c| c.is_uppercase())
-                .unwrap_or(false)
-            {
-                components.push(name.clone());
-                info!("Detected component: {}", name);
-            }
-        }
-    }
-
-    Ok(components)
-}
-
 /// Transforms `.pyx` code to Python
-#[cached(
-    type = "cached::TimedCache<String, String>",
-    create = "{ cached::TimedCache::with_lifespan_and_capacity(60, 1000) }",
-    convert = r#"{ blake3::hash(pyx_code.as_bytes()).to_hex().to_string() }"#
-)]
 pub async fn transform_pyx_to_python(pyx_code: &str) -> Result<String> {
     // Process the transformation from `.pyx` to Python
+    // We use the JSX transformer instead of syn/prettyplease which are for Rust
+
     let pyx_code_cloned = pyx_code.to_string();
     let python_code = tokio::task::spawn_blocking(move || {
-        let syntax_tree =
-            syn::parse_file(&pyx_code_cloned).with_context(|| "Error parsing PyX code")?;
-        Ok::<String, anyhow::Error>(prettyplease::unparse(&syntax_tree))
+        crate::jsx_transformer::parse_jsx(&pyx_code_cloned)
+            .map_err(|e| anyhow::anyhow!("JSX Transformation error: {}", e))
     })
     .await??;
 
@@ -272,7 +225,7 @@ pub async fn transform_pyx_to_python(pyx_code: &str) -> Result<String> {
 /// Updates the application by recompiling components and applying necessary changes.
 pub async fn update_application(
     module_name: &str,
-    code: &str,
+    _code: &str,
     entry_function: &str,
     project_root: String,
 ) -> Result<()> {

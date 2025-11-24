@@ -1,9 +1,10 @@
+use crate::compiler::compile_all_pyx;
 use anyhow::Result;
 use colored::Colorize;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::{error, info};
+use std::env;
 use std::time::Duration;
-use tokio::fs;
 
 pub async fn build_project(output: &str, env: &str) -> Result<()> {
     let pb = ProgressBar::new_spinner();
@@ -11,20 +12,34 @@ pub async fn build_project(output: &str, env: &str) -> Result<()> {
     pb.set_style(
         ProgressStyle::default_spinner()
             .tick_strings(&["-", "\\", "|", "/"])
-            .template("{spinner:.blue} Building project...")?,
+            .template("{spinner:.blue} Building project: {msg}")?,
     );
+    pb.set_message("Compiling components...");
+
+    // Get current directory as project root
+    let project_root = env::current_dir()?.to_string_lossy().to_string();
+    let config_path = "pyx.config.json"; // Default config path
+
+    // Compile all components
+    // This will generate Python files in build/components and styles.css
+    match compile_all_pyx(&project_root, config_path, env).await {
+        Ok((compiled_files, _)) => {
+            pb.set_message(format!("Compiled {} files", compiled_files.len()));
+        }
+        Err(e) => {
+            pb.finish_with_message(format!("{} {}", "Build failed:".red(), e));
+            return Err(e);
+        }
+    }
 
     match env {
         "development" => {
-            info!("Development Mode Activated");
-            transform_styles_to_js().await?;
-            build_development_assets(output).await?;
+            info!("Development build complete");
         }
         "node" | "python" => {
-            info!("Production Mode Activated");
-            transform_styles_to_js().await?;
-            minify_and_optimize_assets(output).await?;
-            generate_server_files(output, env).await?;
+            info!("Production build complete");
+            // Here we could add extra steps like minification of the final bundle
+            // if it wasn't already handled by compile_all_pyx
         }
         _ => {
             error!("Invalid deployment environment: {}", env);
@@ -37,38 +52,5 @@ pub async fn build_project(output: &str, env: &str) -> Result<()> {
         "Project built successfully!".green(),
         output
     ));
-    Ok(())
-}
-
-async fn transform_styles_to_js() -> Result<()> {
-    println!("Transforming styles to JavaScript...");
-    Ok(())
-}
-
-async fn build_development_assets(output: &str) -> Result<()> {
-    println!("Building development assets...");
-    Ok(())
-}
-
-async fn minify_and_optimize_assets(output: &str) -> Result<()> {
-    println!("Minifying and optimizing assets...");
-    Ok(())
-}
-
-async fn generate_server_files(output: &str, env: &str) -> Result<()> {
-    match env {
-        "node" => generate_node_server_files(output).await,
-        "python" => generate_fastapi_files(output).await,
-        _ => unreachable!("Invalid deployment environment"),
-    }
-}
-
-async fn generate_node_server_files(output: &str) -> Result<()> {
-    fs::write(format!("{}/server.js", output), "/* Node.js server code */").await?;
-    Ok(())
-}
-
-async fn generate_fastapi_files(output: &str) -> Result<()> {
-    fs::write(format!("{}/main.py", output), "/* FastAPI server code */").await?;
     Ok(())
 }
