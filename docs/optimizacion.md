@@ -35,7 +35,7 @@ def Component():
     # ✅ GOOD: Only executes when data changes
     use_effect_with_deps(
         "process",
-        lambda deps: set_processed(process_data(props.data)),
+        lambda deps: set_processed.set(process_data(props.data)),
         [props.data]
     )
 
@@ -53,7 +53,7 @@ def OptimizedComponent(props):
     # Calculate result only when props.data changes
     use_effect_with_deps(
         "calculate-memo",
-        lambda deps: set_memo(expensive_calculation(props.data)) if props.data != None else None,
+        lambda deps: set_memo.set(expensive_calculation(props.data)) if props.data != None else None,
         [props.data]
     )
 
@@ -73,7 +73,7 @@ def Component():
     # Better: calculated only when props.data changes
     use_effect_with_deps(
         "process",
-        lambda: set_processed(process_data(props.data)),
+        lambda: set_processed.set(process_data(props.data)),
         [props.data]
     )
 ```

@@ -10,7 +10,7 @@ def ScopedCSS():
     count, set_count = use_state("scoped_css", "count", 0)
     
     def increment():
-        set_count(count + 1)
+        set_count.set(count + 1)
     
     # This style is scoped to this component only
     return (

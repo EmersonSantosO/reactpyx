@@ -1,6 +1,6 @@
-from typing import Callable, Dict, Any, Optional
+from typing import Callable, Dict, Any, Optional, List
 from .registry import get_handler
-from ._core import VNode
+from ._core import VNode, diff_nodes, Patch
 
 _GLOBAL_ROOT: Optional[Callable] = None
 
@@ -51,19 +51,73 @@ class RuntimeManager:
             print(f"Error executing handler: {e}")
             return {"error": str(e)}
 
-        # Re-render
-        # After state updates (triggered by handler), we re-render the root
+        # Re-render después de las actualizaciones de estado
         new_vdom = self.root_component()
 
-        # Diff
-        # We need a diffing algorithm.
-        # For now, we will just send the full HTML (Server-Side Rendering replacement)
-        # This is inefficient but functional for a prototype.
-        new_html = new_vdom.render()
+        # Si no hay VDOM previo, enviamos reemplazo completo
+        if self.current_vdom is None:
+            html = new_vdom.render()
+            self.current_vdom = new_vdom
+            return {"type": "full_replace", "html": html}
 
+        old_vdom = self.current_vdom
+
+        # Calcular diff utilizando la implementación en Rust
+        patches: List[Patch] = diff_nodes(old_vdom, new_vdom)
+
+        # Actualizar VDOM actual
         self.current_vdom = new_vdom
 
-        return {"type": "full_replace", "html": new_html}  # Or "patch" if we had diffs
+        # Si no hay patches, no es necesario que el cliente haga nada
+        if not patches:
+            return {"type": "noop"}
+
+        # Serializar patches a una representación JSON-friendly
+        serialized_patches = []
+        for p in patches:
+            # Creamos un dict mínimo basado en el tipo
+            variant_name = p.__class__.__name__
+            if variant_name == "AddProp":
+                serialized_patches.append(
+                    {
+                        "op": "add_prop",
+                        "key": getattr(p, "key", None),
+                        "value": str(getattr(p, "value", "")),
+                    }
+                )
+            elif variant_name == "RemoveProp":
+                serialized_patches.append(
+                    {
+                        "op": "remove_prop",
+                        "key": getattr(p, "key", None),
+                    }
+                )
+            elif variant_name == "UpdateProp":
+                serialized_patches.append(
+                    {
+                        "op": "update_prop",
+                        "key": getattr(p, "key", None),
+                        "value": str(getattr(p, "value", "")),
+                    }
+                )
+            elif variant_name == "AddChild":
+                serialized_patches.append({"op": "add_child"})
+            elif variant_name == "RemoveChild":
+                serialized_patches.append(
+                    {
+                        "op": "remove_child",
+                        "index": getattr(p, "index", None),
+                    }
+                )
+            elif variant_name == "ReplaceChild":
+                serialized_patches.append(
+                    {
+                        "op": "replace_child",
+                        "index": getattr(p, "index", None),
+                    }
+                )
+
+        return {"type": "patches", "patches": serialized_patches}
 
 
 # Global runtime instance

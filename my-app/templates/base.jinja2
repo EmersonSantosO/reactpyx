@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title | default('ReactPyx App') }}</title>
+    {% block head_meta %}
+        <meta name="description" content="Una aplicación web construida con ReactPyx.">
+    {% endblock head_meta %}
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+    {% block head_extra %}{% endblock head_extra %}
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div id="app">
+        {{ content | safe }}
+        {% block content %}
+        {% endblock content %}
+    </div>
+    <script>
+        window.__INITIAL_STATE__ = {{ initial_state | safe }};
+    </script>
+    <script src="{{ url_for('static', path='bundle.js') }}"></script>
+</body>
+</html>

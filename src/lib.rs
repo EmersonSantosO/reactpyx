@@ -110,9 +110,10 @@ fn add_event_handlers_to_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
 /// Add Virtual DOM and related functionalities to PyO3 module
 fn add_virtual_dom_to_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    use crate::virtual_dom::VNode;
+    use crate::virtual_dom::{diff_nodes, VNode};
 
     m.add_class::<VNode>()?;
+    m.add_function(wrap_pyfunction!(diff_nodes, m)?)?;
     Ok(())
 }
 

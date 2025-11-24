@@ -35,7 +35,7 @@ def UserCard(props):
     }
     
     def toggle_expand():
-        set_is_expanded(not is_expanded)
+        set_is_expanded.set(not is_expanded)
     
     use_effect(lambda: print(f"UserCard rendered for {user.name}"))
     

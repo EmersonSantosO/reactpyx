@@ -1,0 +1,9 @@
+{
+    "entry": "./src/main.pyx",
+    "entryFunction": "MainApp",
+    "publicPath": "./public",
+    "compilerOptions": {
+        "minify": true,
+        "sourceMaps": true
+    }
+}

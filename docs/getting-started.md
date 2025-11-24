@@ -19,13 +19,16 @@
 Make sure you have Python 3.8+ and Rust 1.75+ installed on your system.
 
 ```bash
-# Install ReactPyx from source (recommended for development)
+# Install maturin build tool
+pip install maturin
+
+# Clone and install ReactPyx from source
 git clone https://github.com/EmersonSantosO/core_reactpyx.git
 cd core_reactpyx
-pip install -e .
+maturin develop
 
 # Verify installation
-reactpyx --version
+python -m reactpyx --help
 ```
 
 ## Creating a project
@@ -36,6 +39,9 @@ reactpyx create-project my-app
 
 # Navigate to project directory
 cd my-app
+
+# Initialize project environment
+reactpyx init --env development
 
 # Run the development server
 reactpyx run
@@ -112,11 +118,13 @@ def App():
 
 ## Available hooks
 
-ReactPyx provides hooks similar to React:
+ReactPyx provides hooks similar to React, but adapted for the Python/Rust hybrid environment. Note that state hooks require a `component_id` and a `key` to uniquely identify the state atom.
 
 ```python
 # State
-value, set_value = use_state("key", initial_value)
+# Returns (value, setter_object)
+# Usage: setter.set(new_value)
+value, set_value = use_state("component_id", "key", initial_value)
 
 # Effect (runs on every render)
 use_effect(lambda: print("Component rendered"))
@@ -128,10 +136,12 @@ use_effect_with_deps("effect-id", effect_function, [dependencies])
 value = use_context("component-id", "key")
 
 # Reducer
-state, dispatch = use_reducer("id", "key", reducer_fn, initial_state)
+# Returns (state, dispatcher_object)
+# Usage: dispatch.dispatch(action)
+state, dispatch = use_reducer("component_id", "key", reducer_fn, initial_state)
 
 # Lazy state
-value = use_lazy_state("id", "key", optional_initial_value)
+value = use_lazy_state("component_id", "key", optional_initial_value)
 ```
 
 ## Complete example
@@ -141,19 +151,21 @@ value = use_lazy_state("id", "key", optional_initial_value)
 from reactpyx import use_state, use_effect, use_effect_with_deps
 
 def Counter():
-    count, set_count = use_state("counter", 0)
-    message, set_message = use_state("message", "")
+    # use_state returns the current value and a SetState object
+    count, set_count = use_state("Counter", "count", 0)
+    message, set_message = use_state("Counter", "message", "")
 
     # Effect that runs on every render
     use_effect(lambda: print("Counter rendered"))
 
     # Effect that runs only when count changes
     use_effect_with_deps("counter-change",
-                         lambda deps: set_message(f"Counter changed to: {count}"),
+                         lambda deps: set_message.set(f"Counter changed to: {count}"),
                          [count])
 
     def increment():
-        set_count(count + 1)
+        # Use .set() method on the setter object
+        set_count.set(count + 1)
 
     return (
         <div className="counter">

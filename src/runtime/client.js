@@ -54,11 +54,19 @@
   function handleServerMessage(message) {
     console.log("Received message:", message);
     if (message.type === "patch") {
+      // Legacy format: { type: "patch", payload: { type: "full_replace", html: "..." } }
       applyPatch(message.payload);
+    } else if (message.type === "patches") {
+      // New format: { type: "patches", patches: [...] }
+      applyPatches(message.patches || []);
+    } else if (message.type === "full_replace") {
+      applyPatch(message);
     }
   }
 
   function applyPatch(patch) {
+    if (!patch) return;
+
     if (patch.type === "full_replace") {
       // Replace the entire app content
       // Assuming the app is mounted on #app or similar
@@ -72,10 +80,38 @@
       const appContainer = document.getElementById("app") || document.body;
       appContainer.innerHTML = patch.html;
 
-      // Re-attach listeners?
-      // Since we use delegation on body, we don't need to re-attach listeners to new elements!
-      // This is the beauty of delegation.
+      // No necesitamos re-registrar listeners por usar delegación global.
     }
+  }
+
+  function applyPatches(patches) {
+    if (!Array.isArray(patches) || patches.length === 0) {
+      return;
+    }
+
+    // Por ahora, como el cliente no tiene una representación del VDOM,
+    // aplicamos solo un fallback sencillo: si viene un replace_child en
+    // el índice 0, tratamos como full replace del contenedor raíz.
+    const hasStructuralChange = patches.some(
+      (p) =>
+        p.op === "replace_child" ||
+        p.op === "add_child" ||
+        p.op === "remove_child"
+    );
+
+    if (hasStructuralChange) {
+      // Hasta que tengamos un VDOM cliente, pedimos al servidor
+      // que vuelva a mandar un full_replace en la siguiente
+      // interacción. Este es un modo degradado pero seguro.
+      console.warn(
+        "ReactPyx: received structural patches without client-side VDOM; consider enabling full_replace fallback."
+      );
+      return;
+    }
+
+    // Patch de atributos simples: buscar elementos por data-on-* no es trivial
+    // sin más información (por ejemplo un selector). Por ahora no se aplican
+    // al DOM directo; aquí se deja el hook para futuras mejoras.
   }
 
   function attachEventListeners() {

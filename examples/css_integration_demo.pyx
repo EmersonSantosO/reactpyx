@@ -9,7 +9,7 @@ def InlineStyleDemo(props):
     color, set_color = use_state("inline_demo", "color", "#3182CE")
     
     def toggle_color():
-        set_color("#68D391" if color == "#3182CE" else "#3182CE")
+        set_color.set("#68D391" if color == "#3182CE" else "#3182CE")
     
     styles = {
         "container": {
@@ -52,13 +52,13 @@ def ClassNameDemo(props):
     size, set_size = use_state("class_demo", "size", "medium")
     
     def toggle_active():
-        set_active(not active)
+        set_active.set(not active)
     
     def cycle_size():
         sizes = ["small", "medium", "large"]
         current_index = sizes.index(size)
         next_index = (current_index + 1) % len(sizes)
-        set_size(sizes[next_index])
+        set_size.set(sizes[next_index])
     
     # Combine class names dynamically
     button_class = combine_classes(
@@ -110,7 +110,7 @@ def StyledComponentsDemo(props):
     counter, set_counter = use_state("styled", "counter", 0)
     
     def increment():
-        set_counter(counter + 1)
+        set_counter.set(counter + 1)
     
     return (
         <div className="styled-component-demo">

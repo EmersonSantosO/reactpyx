@@ -20,14 +20,12 @@
 
 > **⚠️ TEMPORARY LICENSE RESTRICTIONS**
 >
-> **All rights reserved. Not for distribution, modification, or commercial use.**
+> **All rights reserved. No commercial use, redistribution or derivative works without permission.**
 >
-> During this early development phase, all code, documentation, and assets in this repository
-> are protected by restrictive copyright. No part of this project may be reproduced, distributed,
-> or used in any form without explicit written permission from the project owners.
->
-> This restricted license is temporary until the project reaches a more mature state, at which point
-> it will be released under the MIT License as indicated below.
+> During this early development phase, all code, documentation, and assets in this repository are
+> covered by a temporary restrictive license (see `LICENSE`). This license allows personal and
+> internal evaluation and contributions, but forbids commercial use and redistribution until the
+> project is ready to transition to the MIT License.
 
 ## 🚀 Features
 
@@ -47,10 +45,21 @@
 
 For development (from source):
 
+Prerequisites:
+
+- Python 3.8+
+- Rust 1.75+
+- `maturin` build tool
+
 ```bash
+# Install maturin if you haven't already
+pip install maturin
+
 git clone https://github.com/EmersonSantosO/core_reactpyx.git
 cd core_reactpyx
-pip install -e .
+
+# Build and install the package in editable mode
+maturin develop
 ```
 
 ## 🛠️ Quick Usage
@@ -58,28 +67,40 @@ pip install -e .
 ### Create a new project
 
 ```bash
+# Using the installed CLI
 reactpyx create-project my-app
+
+# Or using python module directly
+python -m reactpyx create-project my-app
+
 cd my-app
 ```
 
 ### Run development server
 
 ```bash
+# Initialize the project environment
+reactpyx init --env development
+
+# Run the server
 reactpyx run
 ```
 
 ## 📋 Creating Components
 
-Create components in `.pyx` files inside the `src/components` folder:
+Create components in `.pyx` files inside the `src/components` folder.
+Note that hooks like `use_state` require a `component_id` and a unique `key` to persist state across renders.
 
 ```python
 # src/components/Counter.pyx
+from reactpyx import use_state
 
 def Counter():
-    count, set_count = use_state("counter", 0)
+    # use_state(component_id, key, initial_value)
+    count, set_count = use_state("Counter", "count", 0)
 
     def increment():
-        set_count(count + 1)
+        set_count.set(count + 1)
 
     return (
         <div className="counter">

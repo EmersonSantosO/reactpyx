@@ -1,0 +1,22 @@
+{% extends "base.jinja2" %}
+{% block head_meta %}<meta name="description" content="Página no encontrada.">{% endblock %}
+{% block head_extra %}
+    <style>
+        .error-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; font-family: sans-serif; padding: 1rem; }
+        .error-code { font-size: clamp(5rem, 20vw, 10rem); font-weight: bold; color: #e53e3e; margin: 0; line-height: 1; }
+        .error-message { font-size: clamp(1.5rem, 5vw, 2.5rem); color: #4a5568; margin: 0.5rem 0 2rem; }
+        .error-details { color: #718096; margin-bottom: 2rem; max-width: 500px; }
+        .back-link { display: inline-block; color: #3182ce; text-decoration: none; font-weight: bold; padding: 0.75rem 1.5rem; border: 2px solid #3182ce; border-radius: 0.25rem; transition: all 0.2s ease; margin-top: 1rem; }
+        .back-link:hover { background-color: #3182ce; color: white; }
+    </style>
+{% endblock %}
+{% block content %}
+    <div class="error-container">
+        <h1 class="error-code">404</h1>
+        <p class="error-message">Página No Encontrada</p>
+        <p class="error-details">Lo sentimos, no pudimos encontrar la página que buscas. Puede que haya sido movida o eliminada.</p>
+        <a href="/" class="back-link">Volver a la Página Principal</a>
+    </div>
+{% endblock %}
+{# No incluir el script app.js en la página 404 #}
+{% block body_scripts %}{% endblock body_scripts %}

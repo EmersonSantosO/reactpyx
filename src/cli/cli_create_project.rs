@@ -48,7 +48,7 @@ def App():
     count, set_count = use_state("app", "count", 0)
 
     def increment():
-        set_count(count + 1)
+        set_count.set(count + 1)
 
     # Example effect hook
     use_effect(lambda: print("App component rendered or updated"))
@@ -120,10 +120,10 @@ def StyledButton(props):
 
     # Event handlers need to potentially accept an event argument from JS frontend
     def handle_mouse_enter(event=None):
-        set_hover(True)
+        set_hover.set(True)
 
     def handle_mouse_leave(event=None):
-        set_hover(False)
+        set_hover.set(False)
 
     # Combine CSS classes dynamically
     button_class = combine_classes(
@@ -251,7 +251,7 @@ if not os.path.isdir(templates_dir):
         sys.exit(1)
 templates = Jinja2Templates(directory=templates_dir)
 
-static_dir = os.path.join(BASE_DIR, "public", "static")
+static_dir = os.path.join(BASE_DIR, "build")
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
@@ -270,8 +270,8 @@ async def serve_spa(request: Request, full_path: str):
             sys.path.append(build_dir)
             
         # Import the entry point (compiled from src/main.pyx)
-        # Note: This assumes src/main.pyx compiles to build/main.py
-        import main as app_main
+        # src/main.pyx compiles to build/components/main.py
+        from components import main as app_main
         
         # Reload module in development to pick up changes
         import importlib

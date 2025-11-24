@@ -2,11 +2,11 @@ from reactpyx import use_state, use_effect, use_effect_with_deps
 
 def Home():
     """Home page component with counter demonstration"""
-    count, setCount = use_state("count", 0)
-    message, setMessage = use_state("message", "")
+    count, setCount = use_state("home", "count", 0)
+    message, setMessage = use_state("home", "message", "")
     
     def increment():
-        setCount(count + 1)
+        setCount.set(count + 1)
     
     # Demonstration of use_effect (no dependencies, runs every time)
     use_effect(lambda: print("Rendering Home component"))
@@ -14,7 +14,7 @@ def Home():
     # Demonstration of use_effect_with_deps (with dependencies, runs when count changes)
     use_effect_with_deps(
         "count_effect", 
-        lambda deps: setMessage(f"Counter updated to: {count}"),
+        lambda deps: setMessage.set(f"Counter updated to: {count}"),
         [count]
     )
     

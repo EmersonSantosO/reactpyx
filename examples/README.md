@@ -15,7 +15,7 @@ def Button(props):
     count, set_count = use_state("button", "count", 0)
 
     def handle_click(event):
-        set_count(count + 1)
+        set_count.set(count + 1)
 
     return (
         <button onClick={handle_click}>
@@ -30,9 +30,9 @@ Demonstrates how to integrate CSS frameworks like Tailwind and Bootstrap using t
 
 ```bash
 # Install the CSS integration helpers
-reactpyx Install tailwind
+reactpyx install tailwind
 # or
-reactpyx Install bootstrap
+reactpyx install bootstrap
 ```
 
 ### 3. CSS Scoping (`css_scoping_example.pyx`)
@@ -50,7 +50,7 @@ To run any example:
 1. Create a new project:
 
 ```bash
-reactpyx CreateProject my-example
+reactpyx create-project my-example
 cd my-example
 ```
 
@@ -63,8 +63,8 @@ cd my-example
 3. Initialize and run the project:
 
 ```bash
-reactpyx Init --env development
-reactpyx Run
+reactpyx init --env development
+reactpyx run
 ```
 
 ## CSS Integration
@@ -74,7 +74,7 @@ ReactPyx offers multiple ways to integrate CSS:
 1. **CDN Integration**: Install CSS frameworks via CDN links
 
 ```bash
-reactpyx Install tailwind
+reactpyx install tailwind
 ```
 
 2. **Scoped Styles**: Add styles directly within your components

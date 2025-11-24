@@ -1,7 +1,6 @@
 from fastapi import WebSocket
-from typing import List, Dict, Any
+from typing import Dict, Any
 import json
-import asyncio
 import uuid
 from .runtime import RuntimeManager
 from .context import set_current_session_id, reset_current_session_id
@@ -48,13 +47,22 @@ class ConnectionManager:
         # Set context for this session
         token = set_current_session_id(session_id)
         try:
-            # Delegate to runtime
-            result = runtime.handle_event(data)
+            # Delegate to runtime with basic validation
+            if not isinstance(data, dict):
+                result = {"error": "Invalid event payload"}
+            else:
+                # Solo pasamos campos esperados al runtime para evitar datos inesperados
+                safe_event = {
+                    "type": data.get("type"),
+                    "target_id": data.get("target_id"),
+                    "value": data.get("value"),
+                    "checked": data.get("checked"),
+                }
+                result = runtime.handle_event(safe_event)
 
-            response = {
-                "type": "patch",
-                "payload": result,
-            }
+            # El runtime ahora puede devolver diferentes tipos de respuestas
+            # (full_replace, patches, noop, error). Reenviamos tal cual.
+            response = result
             await self.send_personal_message(json.dumps(response), websocket)
         finally:
             reset_current_session_id(token)

@@ -1,0 +1,42 @@
+Copyright (c) 2023-2025 ReactPyx Authors
+
+All rights reserved.
+
+## Temporary License Restrictions
+
+This project is currently in an early development phase. Until it reaches
+a stable and documented 1.0 release, the following temporary restrictions
+apply:
+
+1. No Commercial Use
+   You may not use this software, in whole or in part, for any commercial
+   purposes, including but not limited to selling, licensing, or offering
+   it as part of a paid service.
+
+2. No Redistribution or Derivative Works
+   You may not redistribute this software or create derivative works based
+   on it without prior written permission from the ReactPyx maintainers.
+
+3. Internal Evaluation Only
+   You may clone this repository and use the code solely for personal or
+   internal evaluation, experimentation, or contribution back to the
+   project.
+
+4. No Warranty
+   This software is provided "as is", without warranty of any kind, express
+   or implied, including but not limited to the warranties of
+   merchantability, fitness for a particular purpose and noninfringement.
+
+## Future Transition to MIT License
+
+The ReactPyx maintainers intend to transition this project to the
+MIT License once it reaches a more mature and stable state.
+
+At that time, the repository will include a standard MIT LICENSE file and
+this temporary notice will be removed.
+
+Until that transition happens, this temporary license supersedes any other
+license text or references in the repository.
+
+For questions about licensing or commercial use, please contact the
+project maintainers via the GitHub repository issues or discussions.

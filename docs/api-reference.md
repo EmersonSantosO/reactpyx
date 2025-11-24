@@ -70,6 +70,11 @@ value, set_state = use_state(component_id: str, key: str, initial_value)
 
 Creates local state for the component.
 
+**Returns:**
+
+- `value`: The current value of the state.
+- `set_state`: A `SetState` object. Call `.set(new_value)` on this object to update the state.
+
 ### use_effect
 
 ```python
@@ -99,6 +104,13 @@ Accesses a shared context value.
 ```python
 state, dispatch = use_reducer(component_id: str, key: str, reducer, initial_state)
 ```
+
+Manages complex state logic with a reducer function.
+
+**Returns:**
+
+- `state`: The current state.
+- `dispatch`: A `Dispatch` object. Call `.dispatch(action)` on this object to trigger the reducer.
 
 Manages complex states with a reducer pattern.
 

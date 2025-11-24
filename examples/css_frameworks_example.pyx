@@ -20,7 +20,7 @@ def TailwindComponent(props):
     counter, set_counter = use_state("tailwind_component", "counter", 0)
     
     def increment():
-        set_counter(counter + 1)
+        set_counter.set(counter + 1)
     
     return (
         <div className="p-6 max-w-sm mx-auto bg-white rounded-xl shadow-md flex items-center space-x-4">
@@ -48,7 +48,7 @@ def BootstrapComponent(props):
     counter, set_counter = use_state("bootstrap_component", "counter", 0)
     
     def increment():
-        set_counter(counter + 1)
+        set_counter.set(counter + 1)
     
     return (
         <div className="card" style="width: 18rem;">
