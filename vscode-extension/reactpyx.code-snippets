@@ -1,0 +1,36 @@
+{
+  "ReactPyx Functional Component": {
+    "prefix": "rpx-component",
+    "body": [
+      "from reactpyx import use_state, use_effect",
+      "",
+      "def ${1:ComponentName}():",
+      "    ${2:state}, ${3:set_state} = use_state(\"${1:ComponentName}\", \"${4:key}\", ${5:initial_value})",
+      "",
+      "    def ${6:handle_something}(event):",
+      "        ${3:set_state}.set(${2:state})",
+      "",
+      "    return (",
+      "        <div className=\"${7:container}\">",
+      "            <h1>${1:ComponentName}</h1>",
+      "        </div>",
+      "    )",
+      ""
+    ],
+    "description": "Create a basic ReactPyx functional component with use_state."
+  },
+  "ReactPyx use_state Hook": {
+    "prefix": "rpx-state",
+    "body": [
+      "${1:value}, ${2:set_value} = use_state(\"${3:ComponentId}\", \"${4:key}\", ${5:initial})"
+    ],
+    "description": "Insert a ReactPyx use_state hook call."
+  },
+  "ReactPyx use_effect Hook": {
+    "prefix": "rpx-effect",
+    "body": [
+      "use_effect(lambda: ${1:print(\"effect\")})"
+    ],
+    "description": "Insert a ReactPyx use_effect hook call."
+  }
+}

@@ -30,6 +30,12 @@
                 "scopeName": "source.reactpyx",
                 "path": "./syntaxes/reactpyx.tmLanguage.json"
             }
+        ],
+        "snippets": [
+            {
+                "language": "reactpyx",
+                "path": "./reactpyx.code-snippets"
+            }
         ]
     }
 }
